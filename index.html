@@ -79,6 +79,11 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 #start p{color:var(--sub);font-size:13.5px;line-height:1.9;margin:0}
 #start button{background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:999px;padding:12px 40px;font-size:16px;letter-spacing:.2em}
 .wx{grid-column:1/-1;font-size:12.5px;color:var(--sub)}.wx .chips{margin:6px 0 2px}.wx .chips button{flex:1}
+.rename{display:none;gap:8px;margin:0 0 12px}.rename.on{display:flex}
+.rename input{flex:1;min-width:0;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit;font-size:16px}
+.btn.armed{background:#4a2a26;border-color:var(--danger);color:#fff}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:10px 16px;border-radius:999px;font-size:13.5px;z-index:30;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1}
 @media (max-width:480px){.ctrls{grid-template-columns:1fr}}
 </style>
 </head>
@@ -131,6 +136,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
   </section>
 </main>
 
+<div id="toast"></div>
 <div class="modal" id="catchM"><div class="sheet">
   <canvas id="catchC"></canvas>
   <h3 id="catchT"></h3>
@@ -142,6 +148,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
   <canvas id="bugC"></canvas>
   <h3 id="bugT"></h3>
   <p id="bugP"></p>
+  <div class="rename" id="renameRow"><input id="bugNameIn" maxlength="12" enterkeyhint="done"><button class="btn pri" id="bugNameOk">決定</button></div>
   <div class="acts">
     <button class="btn" id="bugRename">名前</button>
     <button class="btn" id="bugMute">休ませる</button>
@@ -488,15 +495,24 @@ function drawGarden(now){
   c.globalAlpha=1;
   document.getElementById('gstat').textContent=bugs.length?`庭の虫 ${bugs.length}／${GARDEN_MAX}${S.settings.weather==='light'?'　小雨':''}`:'';
 }
-function openBug(b){G.sel=b;const sp=SPECIES[b.sp];document.getElementById('bugT').textContent=b.name;
+function openBug(b){G.sel=b;const sp=SPECIES[b.sp];document.getElementById('renameRow').classList.remove('on');{const f=document.getElementById('bugFree');clearTimeout(f._t);f.classList.remove('armed');f.textContent='逃がす'}document.getElementById('bugT').textContent=b.name;
   document.getElementById('bugP').textContent=`${sp.name}（${sp.voice}）・${traits(b)}`;
-  document.getElementById('bugMute').textContent=b.mute?'鳴かせる':'休ませる';thumb(document.getElementById('bugC'),b.sp,.8);document.getElementById('bugM').classList.add('on')}
+  document.getElementById('bugMute').textContent=b.mute?'鳴かせる':'休ませる';document.getElementById('bugM').classList.add('on');thumb(document.getElementById('bugC'),b.sp,.8)}
 const closeBug=()=>{document.getElementById('bugM').classList.remove('on');G.sel=null};
 document.getElementById('bugClose').onclick=closeBug;
-document.getElementById('bugRename').onclick=()=>{const b=G.sel;const n=prompt('名前',b.name);if(n&&n.trim()){b.name=n.trim().slice(0,12);save();openBug(b);renderBench()}};
+document.getElementById('bugRename').onclick=()=>{const row=document.getElementById('renameRow'),inp=document.getElementById('bugNameIn');row.classList.add('on');inp.value=G.sel.name;inp.focus();inp.select()};
+function applyName(){const b=G.sel,n=document.getElementById('bugNameIn').value.trim();if(b&&n){b.name=n.slice(0,12);save();renderBench();openBug(b)}}
+document.getElementById('bugNameOk').onclick=applyName;
+document.getElementById('bugNameIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229)applyName()});
 document.getElementById('bugMute').onclick=()=>{const b=G.sel;b.mute=!b.mute;const v=G.voices.get(b.id);if(v){v.setMuted(b.mute);applyPos(b)}save();closeBug()};
 document.getElementById('bugBench').onclick=()=>{G.sel.garden=false;save();syncGarden();renderBench();closeBug()};
-document.getElementById('bugFree').onclick=()=>{const b=G.sel;if(!confirm(`${b.name}を野に逃がしますか？`))return;S.bugs=S.bugs.filter(x=>x!==b);save();syncGarden();renderBench();closeBug()};
+// 確認はブラウザのダイアログを使わず、ボタンを2回押す形にする（ダイアログが出ない環境があるため）
+function armButton(btn,label,act){if(btn.classList.contains('armed')){act();return}
+  btn.classList.add('armed');const orig=btn.textContent;btn.textContent=label;
+  clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.classList.remove('armed');btn.textContent=orig},4000)}
+function release(b){S.bugs=S.bugs.filter(x=>x!==b);save();syncGarden();renderBench();toast(`${b.name}を野に逃がしました`)}
+let toastT;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2500)}
+document.getElementById('bugFree').onclick=e=>armButton(e.currentTarget,'もう一度押すと逃がします',()=>{release(G.sel);closeBug()});
 function renderBench(){const el=document.getElementById('bench');const list=S.bugs.filter(b=>!b.garden);el.innerHTML='';
   document.getElementById('benchH').textContent=`控えの虫かご（${list.length}）`;
   if(!list.length){el.innerHTML='<p class="hint">庭がいっぱいのときや、休ませたい虫はここに入ります。</p>';return}
@@ -504,7 +520,7 @@ function renderBench(){const el=document.getElementById('bench');const list=S.bu
   for(const b of list){const r=document.createElement('div');r.className='row';const cv=document.createElement('canvas');r.appendChild(cv);
     const nm=document.createElement('div');nm.className='nm';nm.innerHTML=`${b.name}<small>${SPECIES[b.sp].name}・${traits(b)}</small>`;r.appendChild(nm);
     const go=document.createElement('button');go.className='btn pri';go.textContent='庭に出す';go.disabled=full;go.onclick=()=>{b.garden=true;Object.assign(b,freeSpot());save();syncGarden();renderBench()};r.appendChild(go);
-    const fr=document.createElement('button');fr.className='btn warn';fr.textContent='逃がす';fr.onclick=()=>{if(confirm(`${b.name}を野に逃がしますか？`)){S.bugs=S.bugs.filter(x=>x!==b);save();renderBench()}};r.appendChild(fr);
+    const fr=document.createElement('button');fr.className='btn warn';fr.textContent='逃がす';fr.onclick=()=>armButton(fr,'もう一度押す',()=>release(b));r.appendChild(fr);
     el.appendChild(r);requestAnimationFrame(()=>thumb(cv,b.sp,0))}}
 
 // ───────── 設定 ─────────
