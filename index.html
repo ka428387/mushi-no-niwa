@@ -114,6 +114,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
       <label>夜の深さ（響き）<b id="depthL"></b><input type="range" id="depth" min="0" max="1.4" step="0.05"></label>
       <div class="note">秋の虫は気温が高いほど速く、低いほどゆっくり鳴きます。</div>
       <label>風の音<b id="windL"></b><input type="range" id="wind" min="0" max="1" step="0.05"></label>
+      <label>音のやわらかさ<b id="softL"></b><input type="range" id="soft" min="0" max="1" step="0.05"></label>
       <label>音量<b id="volL"></b><input type="range" id="vol" min="0" max="1" step="0.05"></label>
       <label>おやすみタイマー<select id="timer"><option value="0">なし</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option><option value="90">90分</option></select></label>
       <label>&nbsp;<b id="timerL" style="margin:0"></b></label>
@@ -154,11 +155,11 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 const rr=(a,b)=>a+Math.random()*(b-a), ri=(a,b)=>Math.floor(rr(a,b+1)), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 const SPECIES={
-  suzumushi:{name:'スズムシ',voice:'リーン、リーン',freq:4300,am:[62,.55],gain:.32,
+  suzumushi:{name:'スズムシ',voice:'リーン、リーン',freq:4000,am:[62,.5],gain:.32,
     color:'#221d16',wing:'#b8ad86',len:18,wd:.55,ant:1.7,
     desc:'平安時代から声を楽しまれてきた鳴く虫の代表。江戸時代には飼育して売り歩く「虫売り」もいた。翅を立ててこすり合わせて鳴く。',
     phrase(v,t,k){let T=t;const n=ri(2,4);for(let i=0;i<n;i++){const d=rr(.26,.34)/Math.sqrt(k);v.glide(T,T+d,.985,1);v.tone(T,d,1,.03,.09);T+=d+.2/k}return T-t+rr(.6,2.2)/k}},
-  emma:{name:'エンマコオロギ',voice:'コロコロリー',freq:3900,am:[45,.45],gain:.34,
+  emma:{name:'エンマコオロギ',voice:'コロコロリー',freq:3700,am:[45,.4],gain:.34,
     color:'#3a2a1c',wing:'#5a4430',len:24,wd:.5,ant:1.4,
     desc:'日本で最も大きなコオロギの仲間。顔つきが閻魔さまに似ていることから名がついた。草むらや畑のすみでよく鳴いている。',
     phrase(v,t,k){let T=t;v.freq(T,1);const P=m=>{for(let j=0;j<m;j++){v.tone(T,.022,.9,.003,.008);T+=Math.max(.026,.037/k)}};
@@ -180,11 +181,11 @@ const SPECIES={
     color:'#5fa84a',wing:'#86c56c',len:24,wd:.32,ant:2.2,
     desc:'馬を追う馬子（まご）の声に聞こえることから名がついた。ほかの虫を食べる肉食の虫で、林のへりの草木で鳴く。',
     phrase(v,t,k){let T=t;const n=ri(1,3);for(let i=0;i<n;i++){const d=.32;v.glide(T,T+d,.93,1.03);v.tone(T,d,.9,.22,.03);T+=d+.1/k;v.freq(T,1.12);v.tone(T,.06,1,.003,.04);T+=.06+.45/k}return T-t+rr(1,2.5)/k}},
-  kanetataki:{name:'カネタタキ',voice:'チッ、チッ、チッ',freq:5200,am:[1,0],gain:.3,
+  kanetataki:{name:'カネタタキ',voice:'チッ、チッ、チッ',freq:4500,am:[1,0],gain:.3,
     color:'#6b5040',wing:'#8a6b52',len:10,wd:.45,ant:1.2,
     desc:'鉦（かね）をたたく音にたとえられる。体長1cmほどの小さな虫で、生け垣や木の上で鳴く。声はするのに見つけにくい。',
-    phrase(v,t,k){let T=t;const n=ri(4,11);for(let i=0;i<n;i++){v.tone(T,.014,1,.001,.012);T+=rr(.26,.32)/k}return T-t+rr(3,8)/k}},
-  kusahibari:{name:'クサヒバリ',voice:'フィリリリリ…',freq:5900,am:[70,.7],gain:.2,shy:true,
+    phrase(v,t,k){let T=t;const n=ri(4,11);for(let i=0;i<n;i++){v.tone(T,.024,1,.006,.016);T+=rr(.26,.32)/k}return T-t+rr(3,8)/k}},
+  kusahibari:{name:'クサヒバリ',voice:'フィリリリリ…',freq:5000,am:[70,.6],gain:.2,shy:true,
     color:'#a88a58',wing:'#d8c08a',len:8,wd:.45,ant:1.9,
     desc:'体長7mmほどの小さなコオロギの仲間。ヒバリのように澄んだ声で、昼間にも鳴く。とても臆病で、近づくとすぐ黙る。',
     phrase(v,t,k){const d=rr(1,2.4);v.tone(t,d,1,.05,.15);return d+rr(.5,1.3)/k}},
@@ -203,6 +204,7 @@ const AREAS={
 // ───────── 保存 ─────────
 const KEY='mushinoniwa.v1';
 const S=Object.assign({bugs:[],nextId:1,seen:{},settings:{temp:22,depth:.7,wind:.35,vol:.8},area:'kusamura'},(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}})());
+S.settings=Object.assign({temp:22,depth:.7,wind:.35,vol:.8,soft:.6},S.settings);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const GARDEN_MAX=12;
 const inGarden=()=>S.bugs.filter(b=>b.garden);
@@ -210,15 +212,16 @@ const inGarden=()=>S.bugs.filter(b=>b.garden);
 function traits(b){const t=[];t.push(b.pitch<.98?'低めの声':b.pitch>1.02?'高めの声':'ふつうの声');t.push(b.rate>1.04?'せっかち':b.rate<.96?'のんびり屋':'マイペース');return t.join('・')}
 
 // ───────── 音 ─────────
-let ac,master,reverbIn,fieldBus,gardenBus,previewBus,noiseBuf,windGain,playing=true;
+let lowpass,shelf,ac,master,reverbIn,fieldBus,gardenBus,previewBus,noiseBuf,windGain,playing=true;
 function makeIR(sec){const n=ac.sampleRate*sec,b=ac.createBuffer(2,n,ac.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3.2)}return b}
 function initAudio(){
   const AC=window.AudioContext||window.webkitAudioContext;ac=new AC();
   try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
   master=ac.createGain();master.gain.value=S.settings.vol;
-  const shelf=ac.createBiquadFilter();shelf.type='highshelf';shelf.frequency.value=5000;shelf.gain.value=-5;
+  lowpass=ac.createBiquadFilter();lowpass.type='lowpass';lowpass.Q.value=.5;
+  shelf=ac.createBiquadFilter();shelf.type='highshelf';shelf.frequency.value=3500;setSoft(S.settings.soft);
   const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3;
-  master.connect(shelf);shelf.connect(comp);comp.connect(ac.destination);
+  master.connect(lowpass);lowpass.connect(shelf);shelf.connect(comp);comp.connect(ac.destination);
   const rev=ac.createConvolver();rev.buffer=makeIR(3.2);reverbIn=ac.createGain();reverbIn.gain.value=S.settings.depth;reverbIn.connect(rev);rev.connect(master);
   fieldBus=ac.createGain();gardenBus=ac.createGain();previewBus=ac.createGain();[fieldBus,gardenBus,previewBus].forEach(b=>b.connect(master));
   noiseBuf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);{const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
@@ -229,6 +232,7 @@ function initAudio(){
   windGain=ac.createGain();windGain.gain.value=S.settings.wind*.5;ws.connect(wl);wl.connect(gust);gust.connect(windGain);windGain.connect(master);ws.start();
   setInterval(tick,60);
 }
+function setSoft(v,now){const t=now||0;lowpass.frequency.setTargetAtTime(9500-5000*v,t,.05);shelf.gain.setTargetAtTime(-2-9*v,t,.05)}
 const tempo=()=>clamp(1+(S.settings.temp-22)*.045,.6,1.45);
 
 class Voice{
@@ -249,7 +253,7 @@ class Voice{
     this.nextT=ac.currentTime+.1+Math.random()*2.5;
   }
   k(){return tempo()*(this.ind.rate||1)}
-  tone(t,d,a,att,rel){t=Math.max(t,this.lastEnd+.002);att=Math.min(att,d*.5);rel=Math.min(rel,d-att);const g=this.env.gain;
+  tone(t,d,a,att,rel){t=Math.max(t,this.lastEnd+.002);att=Math.min(Math.max(att,.007),d*.4);rel=Math.min(Math.max(rel,.014),d-att);const g=this.env.gain;
     g.setValueAtTime(0,t);g.linearRampToValueAtTime(a,t+att);g.setValueAtTime(a,t+d-rel);g.linearRampToValueAtTime(0,t+d);this.lastEnd=t+d;this.marks.push([t,t+d])}
   freq(t,r){this.fp.setValueAtTime(this.base*r,Math.max(t,this.lastEnd))}
   glide(t0,t1,r0,r1){t0=Math.max(t0,this.lastEnd);this.fp.setValueAtTime(this.base*r0,t0);this.fp.linearRampToValueAtTime(this.base*r1,Math.max(t1,t0+.01))}
@@ -439,6 +443,7 @@ function bindCtrl(id,fmt,apply){const el=document.getElementById(id),lb=document
 bindCtrl('temp',v=>`${v}℃（${v<19?'ゆっくり':v<25?'ふつう':'はやい'}）`);
 bindCtrl('depth',v=>v<.3?'浅い':v<.9?'ふつう':'深い',v=>reverbIn.gain.setTargetAtTime(v,ac.currentTime,.1));
 bindCtrl('wind',v=>v===0?'なし':Math.round(v*100)+'%',v=>windGain.gain.setTargetAtTime(v*.5,ac.currentTime,.2));
+bindCtrl('soft',v=>v<.3?'くっきり':v<.75?'まるい':'とてもまるい',v=>setSoft(v,ac.currentTime));
 bindCtrl('vol',v=>Math.round(v*100)+'%',v=>{if(playing)master.gain.setTargetAtTime(v,ac.currentTime,.05)});
 let timerEnd=0;
 document.getElementById('timer').onchange=e=>{const m=+e.target.value;timerEnd=m?Date.now()+m*60000:0;if(m&&!playing)togglePlay()};
