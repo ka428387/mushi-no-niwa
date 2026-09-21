@@ -114,7 +114,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 
   <section id="garden">
     <div class="stage" id="gstage"><canvas id="gc"></canvas><div class="stat" id="gstat"></div><div class="empty" id="gempty">まだ庭に虫がいません。<br>「探す」で虫をつかまえてきましょう。</div></div>
-    <p class="hint">虫をドラッグして置き場所を変えられます。<b>左右</b>で聞こえる方向が、<b>奥／手前</b>で遠さと響きが変わります。虫をタップすると詳しく見られます。</p>
+    <p class="hint">虫をドラッグして置き場所を変えられます。<b>左右</b>で聞こえる方向が、<b>奥／手前</b>で遠さと響きが変わります。同じ種類の虫を近くに置くと、<b>交互に鳴き交わします</b>。虫をタップすると詳しく見られます。</p>
     <div class="ctrls">
       <div class="wx">天気<div class="chips" id="weather"></div><div style="font-size:11.5px">小雨にすると、虫の声に雨音が重なります。</div></div>
       <label>気温<b id="tempL"></b><input type="range" id="temp" min="14" max="30" step="1"></label>
@@ -307,6 +307,17 @@ function setWeather(w){if(S.settings.weather===w)return;S.settings.weather=w;sav
 function renderWeather(){const el=document.getElementById('weather');el.innerHTML='';for(const[k,l]of[['clear','晴れ'],['light','小雨']]){
   const b=document.createElement('button');b.textContent=l;b.className=S.settings.weather===k?'on':'';b.onclick=()=>setWeather(k);el.appendChild(b)}}
 renderWeather();
+// ───────── 月（実際の月齢） ─────────
+const SYNODIC=29.530588853,NEW_MOON_REF=Date.UTC(2000,0,6,18,14);
+function moonAge(){return(((Date.now()-NEW_MOON_REF)/864e5)%SYNODIC+SYNODIC)%SYNODIC}
+function moonInfo(){const age=moonAge(),p=age/SYNODIC,illum=(1-Math.cos(2*Math.PI*p))/2;
+  const names=[[1.5,'新月'],[4,'三日月'],[6.5,'夕月'],[9,'上弦の月'],[11,'十日夜の月'],[13.3,'十三夜の月'],[16,'満月'],[17.3,'十六夜の月'],[20,'寝待月'],[23.5,'下弦の月'],[27.5,'有明の月'],[99,'新月']];
+  return{age,p,illum,name:names.find(n=>age<n[0])[1]}}
+function drawMoon(c,x,y,r,m,alpha=1){c.save();c.globalAlpha=alpha;
+  const g=c.createRadialGradient(x,y,0,x,y,r*6);g.addColorStop(0,`rgba(244,236,208,${.22*m.illum})`);g.addColorStop(1,'rgba(244,236,208,0)');c.fillStyle=g;c.fillRect(x-r*6,y-r*6,r*12,r*12);
+  c.fillStyle='rgba(60,64,84,.55)';c.beginPath();c.arc(x,y,r,0,7);c.fill();
+  const waxing=m.p<.5,k=Math.cos(2*Math.PI*m.p);c.fillStyle='#f4ecd0';c.beginPath();
+  c.arc(x,y,r,-Math.PI/2,Math.PI/2,!waxing);c.ellipse(x,y,r*Math.abs(k),r,0,Math.PI/2,-Math.PI/2,waxing?k>0:k<=0);c.fill();c.restore()}
 const tempo=()=>clamp(1+(S.settings.temp-22)*.045,.6,1.45);
 
 class Voice{
@@ -335,7 +346,12 @@ class Voice{
     const now=ac.currentTime;if(this.nextT<now)this.nextT=now+.05;
     while(this.nextT<h){
       if(this.muted||now<this.silentUntil){this.nextT=Math.max(this.nextT+.3,this.silentUntil);continue}
-      this.nextT+=Math.max(.2,this.sp.phrase(this,this.nextT,this.k()));
+      const k=this.k(),ps=this.partners?this.partners():[];
+      // 掛け合い：近くの仲間が鳴いている間は待ち、鳴き終わりに合わせて返す
+      let wait=0;for(const p of ps)if(p.lastEnd>this.nextT-.05)wait=Math.max(wait,p.lastEnd);
+      if(wait){this.nextT=wait+rr(.08,.25)/k;continue}
+      this.nextT+=Math.max(.2,this.sp.phrase(this,this.nextT,k));
+      for(const p of ps)if(p.nextT>this.lastEnd+1&&Math.random()<.6)p.nextT=this.lastEnd+rr(.1,.35)/k;
     }
     this.lfo.frequency.setTargetAtTime(this.sp.am[0]*Math.sqrt(this.k()),now,.3);
   }
@@ -416,8 +432,7 @@ function drawField(now,dt){
   F.speed=F.speed*.8+(step/Math.max(dt,.001))*.2;
   // 空と地面
   let g=c.createLinearGradient(0,0,0,H*.3);g.addColorStop(0,A.sky[0]);g.addColorStop(1,A.sky[1]);c.fillStyle=g;c.fillRect(0,0,W,H*.3);
-  c.fillStyle='rgba(240,232,200,.9)';c.beginPath();c.arc(W*.82,H*.1,11,0,7);c.fill();
-  g=c.createRadialGradient(W*.82,H*.1,0,W*.82,H*.1,70);g.addColorStop(0,'rgba(240,232,200,.18)');g.addColorStop(1,'rgba(240,232,200,0)');c.fillStyle=g;c.fillRect(0,0,W,H*.35);
+  const moon=moonInfo(),vis=85+50*moon.illum;drawMoon(c,W*.82,H*.1,11,moon);
   if(F.trees)for(const t of F.trees){c.fillStyle='#070b12';c.beginPath();c.ellipse(t.x,H*.3-t.h*.45,t.w*.6,t.h*.55,0,0,7);c.fill();c.fillRect(t.x-3,H*.3-t.h*.2,6,t.h*.2)}
   g=c.createLinearGradient(0,H*.28,0,H);g.addColorStop(0,A.ground[0]);g.addColorStop(1,A.ground[1]);c.fillStyle=g;c.fillRect(0,H*.28,W,H);
   // 草
@@ -426,9 +441,9 @@ function drawField(now,dt){
     if(b.plume){c.strokeStyle='rgba(200,185,150,.5)';c.lineWidth=3;c.beginPath();c.moveTo(b.x+b.lean*b.h+sway,b.y-b.h);c.lineTo(b.x+b.lean*b.h+sway*1.5+5,b.y-b.h-10);c.stroke()}}
   // 虫（灯りの中でだけ見える）
   const at=ac.currentTime;
-  for(const b of F.bugs){const d=Math.hypot(b.x-F.lx,b.y-F.ly);if(d<95)drawBug(c,SPECIES[b.sp],b.x,b.y,SPECIES[b.sp].len<14?1.3:1,clamp((95-d)/45,0,1),0)}
+  for(const b of F.bugs){const d=Math.hypot(b.x-F.lx,b.y-F.ly);if(d<vis)drawBug(c,SPECIES[b.sp],b.x,b.y,SPECIES[b.sp].len<14?1.3:1,clamp((vis-d)/45,0,1),0)}
   // 暗がり
-  g=c.createRadialGradient(F.lx,F.ly,10,F.lx,F.ly,150);g.addColorStop(0,'rgba(255,220,150,.10)');g.addColorStop(.35,'rgba(4,6,16,.25)');g.addColorStop(1,'rgba(4,6,16,.78)');c.fillStyle=g;c.fillRect(0,0,W,H);
+  g=c.createRadialGradient(F.lx,F.ly,10,F.lx,F.ly,150);g.addColorStop(0,'rgba(255,220,150,.10)');g.addColorStop(.35,'rgba(4,6,16,.25)');g.addColorStop(1,`rgba(4,6,16,${.86-.2*moon.illum})`);c.fillStyle=g;c.fillRect(0,0,W,H);
   // 目の光と声の波紋（ヒント）
   for(const b of F.bugs){const d=Math.hypot(b.x-F.lx,b.y-F.ly),sing=b.voice.singing(at);
     if(d<120&&sing){const a=clamp((120-d)/60,0,1)*.9;c.fillStyle=`rgba(255,240,190,${a*(.6+.4*Math.sin(now/60))})`;c.beginPath();c.arc(b.x+SPECIES[b.sp].len*.5,b.y-1,1.6,0,7);c.fill()}
@@ -445,7 +460,7 @@ function drawField(now,dt){
     b.voice.out.gain.setTargetAtTime(gain,at,.05);b.voice.pan.pan.setTargetAtTime(clamp((b.x-F.lx)/(W*.45),-1,1)*.9,at,.05);b.voice.send.gain.setTargetAtTime(.25+.4*clamp(d/W,0,1),at,.1)}
   // 補充
   F.respawn=F.respawn.filter(t=>{if(now>t){spawnBug();return false}return true});
-  document.getElementById('fstat').textContent=`${A.name}　声の数 ${F.bugs.length}`;
+  document.getElementById('fstat').textContent=`${A.name}　今夜は${moon.name}`;
 }
 function renderAreas(){const el=document.getElementById('areas');el.innerHTML='';for(const k in AREAS){const b=document.createElement('button');b.textContent=AREAS[k].name;b.className=k===S.area?'on':'';
   b.onclick=()=>{S.area=k;save();renderAreas();if(F.active)enterField()};el.appendChild(b)}}
@@ -457,10 +472,12 @@ const gRnd=seeded(42);const GDECO={susuki:Array.from({length:7},()=>({x:gRnd(),y
 function freeSpot(){let best=null,bd=-1;for(let i=0;i<30;i++){const x=rr(.12,.88),y=rr(.3,.92);const d=Math.min(9,...inGarden().map(b=>Math.hypot(b.x-x,(b.y-y)*.8)));if(d>bd){bd=d;best={x,y}}}return best}
 function applyPos(b){const v=G.voices.get(b.id);if(!v||!ac)return;const now=ac.currentTime,near=b.y;
   v.pan.pan.setTargetAtTime(clamp((b.x-.5)*1.8,-1,1),now,.05);v.out.gain.setTargetAtTime(.25+.75*Math.pow(near,1.3),now,.05);v.send.gain.setTargetAtTime(.12+.7*(1-near),now,.05)}
+const PAIR_R=.25,pairDist=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)*.8);
+function partnersOf(b){if(b.mute)return[];const out=[];for(const o of inGarden())if(o!==b&&o.sp===b.sp&&!o.mute&&pairDist(o,b)<PAIR_R){const v=G.voices.get(o.id);if(v&&!v.dead)out.push(v)}return out}
 function syncGarden(){ // 庭にいる虫と声を一致させる
   if(!ac)return;const ids=new Set(inGarden().map(b=>b.id));
   for(const[id,v]of G.voices)if(!ids.has(id)){v.stop();G.voices.delete(id)}
-  for(const b of inGarden())if(!G.voices.has(b.id)){const v=new Voice(b.sp,b,gardenBus);G.voices.set(b.id,v);if(b.mute)v.setMuted(true);applyPos(b)}}
+  for(const b of inGarden())if(!G.voices.has(b.id)){const v=new Voice(b.sp,b,gardenBus);v.partners=()=>partnersOf(b);G.voices.set(b.id,v);if(b.mute)v.setMuted(true);applyPos(b)}}
 function stopGarden(){for(const v of G.voices.values())v.stop();G.voices.clear()}
 function gLocal(e){const r=gc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 const gTop=()=>G.H*.22;
@@ -475,7 +492,7 @@ function drawGarden(now){
   let g=c.createLinearGradient(0,0,0,top);g.addColorStop(0,'#0a1230');g.addColorStop(1,'#18224a');c.fillStyle=g;c.fillRect(0,0,W,top);
   const rl=ac?rainLvl:RAIN_T[S.settings.weather];
   const sr=seeded(3);c.fillStyle='rgba(255,255,240,.6)';for(let i=0;i<40;i++){const x=sr()*W,y=sr()*top*.9,tw=.5+.5*Math.sin(now/900+i);c.globalAlpha=tw*.7*(1-rl);c.fillRect(x,y,1.2,1.2)}c.globalAlpha=1;
-  c.globalAlpha=1-rl*.92;c.fillStyle='#f4ecd0';c.beginPath();c.arc(W*.8,top*.42,14,0,7);c.fill();g=c.createRadialGradient(W*.8,top*.42,0,W*.8,top*.42,90);g.addColorStop(0,'rgba(244,236,208,.2)');g.addColorStop(1,'rgba(244,236,208,0)');c.fillStyle=g;c.fillRect(0,0,W,top*1.5);c.globalAlpha=1;
+  drawMoon(c,W*.8,top*.42,14,moonInfo(),1-rl*.92);
   c.fillStyle='#070b14';c.beginPath();c.moveTo(0,top);for(let x=0;x<=W;x+=20)c.lineTo(x,top-8-Math.sin(x*.013)*6-Math.sin(x*.041)*4);c.lineTo(W,top);c.fill();
   g=c.createLinearGradient(0,top,0,H);g.addColorStop(0,'#101a18');g.addColorStop(1,'#1b2a1f');c.fillStyle=g;c.fillRect(0,top,W,H-top);
   c.fillStyle='rgba(200,210,255,.18)';c.font='11px sans-serif';c.textAlign='center';c.fillText('奥（遠く・よく響く）',W/2,top+14);c.fillText('手前（近く・はっきり）',W/2,H-8);
@@ -486,6 +503,12 @@ function drawGarden(now){
     const ex=q.x+Math.sin(a)*h+sw,ey=q.y-Math.cos(a)*h;c.strokeStyle='#3e5236';c.lineWidth=1.4;c.beginPath();c.moveTo(q.x,q.y);c.quadraticCurveTo(q.x+Math.sin(a)*h*.4,q.y-h*.6,ex,ey);c.stroke();
     if(i%2===0){c.strokeStyle='rgba(215,200,160,.55)';c.lineWidth=3*sc;c.beginPath();c.moveTo(ex,ey);c.lineTo(ex+sw+4*Math.sin(a+.3),ey-10*sc);c.stroke()}}}
   const at=ac?ac.currentTime:0;const bugs=inGarden().slice().sort((a,b)=>a.y-b.y);
+  // 掛け合っている仲間を点線でつなぐ
+  c.setLineDash([2,5]);c.lineWidth=1;
+  for(let i=0;i<bugs.length;i++)for(let j=i+1;j<bugs.length;j++){const a=bugs[i],b=bugs[j];if(a.sp!==b.sp||a.mute||b.mute||pairDist(a,b)>=PAIR_R)continue;
+    const va=G.voices.get(a.id),vb=G.voices.get(b.id),on=playing&&((va&&va.singing(at))||(vb&&vb.singing(at)));
+    const p=toPx(a),q=toPx(b);c.strokeStyle=`rgba(240,201,106,${on?.45:.15})`;c.beginPath();c.moveTo(p.x,p.y);c.quadraticCurveTo((p.x+q.x)/2,Math.min(p.y,q.y)-20,q.x,q.y);c.stroke()}
+  c.setLineDash([]);
   for(const b of bugs){const q=toPx(b),sp=SPECIES[b.sp],v=G.voices.get(b.id),sing=v&&playing&&v.singing(at);
     const s=(.75+.55*b.y)*(sp.len<14?1.5:1);drawBug(c,sp,q.x,q.y,s,b.mute?.45:1,sing?1:0);
     if(sing){const ph=(now/600)%1;c.strokeStyle=`rgba(240,201,106,${(1-ph)*.35})`;c.lineWidth=1;c.beginPath();c.arc(q.x,q.y,sp.len*s*.6+ph*16,0,7);c.stroke()}
