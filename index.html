@@ -191,16 +191,43 @@ const SPECIES={
     color:'#a88a58',wing:'#d8c08a',len:8,wd:.45,ant:1.9,
     desc:'体長7mmほどの小さなコオロギの仲間。ヒバリのように澄んだ声で、昼間にも鳴く。とても臆病で、近づくとすぐ黙る。',
     phrase(v,t,k){const d=rr(1,2.4);v.tone(t,d,1,.05,.15);return d+rr(.5,1.3)/k}},
+  tsuzure:{name:'ツヅレサセコオロギ',voice:'リッ、リッ、リッ…',freq:3700,am:[38,.5],gain:.3,
+    color:'#4a3a2a',wing:'#6b5640',len:17,wd:.5,ant:1.5,
+    desc:'人家のまわりにも多い、晩秋まで鳴く身近なコオロギ。昔の人はこの声を「肩刺せ、綴れ刺せ（冬に備えて着物をつくろえ）」と聞きなした。',
+    phrase(v,t,k){let T=t;const n=ri(8,20);for(let i=0;i<n;i++){v.tone(T,.08,1,.01,.03);T+=rr(.26,.3)/k}return T-t+rr(1,3)/k}},
+  kirigirisu:{name:'キリギリス',voice:'ギーッ、チョン',freq:3000,noise:true,q:2,am:[150,.85],gain:.3,
+    color:'#6c8a3e',wing:'#8aa85a',len:34,wd:.45,ant:1.8,
+    desc:'夏から初秋の草原で鳴く大型の虫。古い和歌の「きりぎりす」は、今のコオロギのことだったといわれている。',
+    phrase(v,t,k){let T=t;const n=ri(2,5);for(let i=0;i<n;i++){const d=.26/Math.sqrt(k);v.freq(T,1);v.tone(T,d,1,.03,.05);T+=d+.07/k;v.freq(T,1.2);v.tone(T,.05,.8,.006,.03);T+=.05+.55/k}return T-t+rr(1.5,3.5)/k}},
+  aomatsu:{name:'アオマツムシ',voice:'リーリーリー',freq:4000,am:[55,.35],gain:.26,
+    color:'#5aa04a',wing:'#8cc870',len:22,wd:.45,ant:1.6,
+    desc:'明治時代に日本に入ったとされる外来の虫。街路樹や公園の木の上で、にぎやかに鳴く。いまでは都会の秋の音になっている。',
+    phrase(v,t,k){let T=t;const n=ri(6,14);for(let i=0;i<n;i++){const d=.17/Math.sqrt(k);v.glide(T,T+d,.99,1.01);v.tone(T,d,1,.02,.05);T+=d+.11/k}return T-t+rr(.8,2)/k}},
+  kumasuzu:{name:'クマスズムシ',voice:'ジジジジ…',freq:3600,noise:true,q:3,am:[130,.9],gain:.22,
+    color:'#15130f',wing:'#2a2620',len:8,wd:.5,ant:1.6,
+    desc:'体長7mmほどの黒い小さな虫。名前にスズムシとあるが、スズムシとは別の仲間。落ち葉の間など地面の近くで、細かく鳴く。',
+    phrase(v,t,k){const d=rr(1,3);v.tone(t,d,1,.08,.2);return d+rr(1,3)/k}},
+  tsuyumushi:{name:'ツユムシ',voice:'チッ…チキチキチキ',freq:3900,am:[1,0],gain:.22,
+    color:'#7cc060',wing:'#a8d88c',len:22,wd:.3,ant:2.4,
+    desc:'細長い体で、よく飛ぶ。声は小さく控えめで、つぶやくように鳴く。ほかの虫の声のすき間から聞こえてくる。',
+    phrase(v,t,k){let T=t;const n=ri(1,3);for(let i=0;i<n;i++){v.freq(T,1);v.tone(T,.03,.8,.006,.02);T+=rr(.5,.9)/k}
+      if(Math.random()<.6){const m=ri(4,9);v.freq(T,1.05);for(let j=0;j<m;j++){v.tone(T,.025,1,.006,.015);T+=.07/k}}return T-t+rr(2,5)/k}},
+  kayakiri:{name:'カヤキリ',voice:'ジーーーー',freq:2300,noise:true,q:1.6,am:[190,.7],gain:.2,
+    color:'#4f7a36',wing:'#6e9a50',len:36,wd:.45,ant:1.7,
+    desc:'日本最大級のキリギリスの仲間。ススキなどカヤの草原で、太く長い声で鳴き続ける。ほかの虫の声を下から支える音。',
+    phrase(v,t,k){const d=rr(4,10);v.tone(t,d,1,.3,.5);return d+rr(2,5)/k}},
 };
 const SP_KEYS=Object.keys(SPECIES);
 
 const AREAS={
   kusamura:{name:'庭のはずれの草むら',sky:['#0d1530','#131c33'],ground:['#0f1a14','#07100b'],blade:['#2f4a2c','#3d5c35','#26402a'],n:7,
-    w:{emma:5,suzumushi:4,kanetataki:2,matsumushi:1,kusahibari:1}},
+    w:{emma:5,suzumushi:4,tsuzure:3,kanetataki:2,matsumushi:1,kumasuzu:1,kusahibari:1}},
   kawara:{name:'河原のススキ原',sky:['#101838','#1b2238'],ground:['#1a1a14','#0c0c08'],blade:['#5b5436','#6e6541','#4a4a30'],n:7,susuki:true,
-    w:{matsumushi:4,emma:3,kutsuwa:2,suzumushi:1,kusahibari:1}},
+    w:{matsumushi:4,emma:3,kutsuwa:2,kirigirisu:2,kayakiri:2,suzumushi:1,kusahibari:1}},
   hayashi:{name:'雑木林のへり',sky:['#0a1026','#0f1628'],ground:['#0c150f','#050a07'],blade:['#24402a','#2e5233','#1c3322'],n:6,trees:true,
-    w:{kantan:4,umaoi:3,kanetataki:3,kutsuwa:2,kusahibari:1}},
+    w:{kantan:4,umaoi:3,kanetataki:3,kutsuwa:2,tsuyumushi:2,kumasuzu:1,kusahibari:1}},
+  kouen:{name:'街の公園',sky:['#1a1a34','#2a2a40'],ground:['#141a16','#0a0e0b'],blade:['#35503a','#40603f','#2b4431'],n:7,trees:true,
+    w:{aomatsu:5,tsuzure:4,emma:3,kanetataki:2,tsuyumushi:1,kumasuzu:1}},
 };
 
 // ───────── 保存 ─────────
