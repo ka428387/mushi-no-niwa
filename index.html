@@ -280,15 +280,21 @@ function setSoft(v,now){const t=now||0;lowpass.frequency.setTargetAtTime(9500-50
 // ───────── 雨 ─────────
 const RAIN_T={clear:0,light:.45};
 let rainLvl=0,nextDrop=0,nextDrip=0,dripUntil=0;
-function drop(t,lvl){const o=ac.createOscillator(),g=ac.createGain(),p=ac.createStereoPanner(),f=rr(700,1900);
-  o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.55,t+.04);const a=rr(.008,.03)*(.6+.4*lvl);
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+.07);p.pan.value=rr(-.9,.9);
-  o.connect(g);g.connect(p);p.connect(rainBus);o.start(t);o.stop(t+.09)}
-function drip(t){ // 軒先のしずく：左手前で「ポトン」
-  const o=ac.createOscillator(),g=ac.createGain(),p=ac.createStereoPanner(),f=rr(950,1150);
-  o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.48,t+.09);
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.05,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+.3);p.pan.value=-.55;
-  const sd=ac.createGain();sd.gain.value=.4;o.connect(g);g.connect(p);p.connect(rainBus);g.connect(sd);sd.connect(reverbIn);o.start(t);o.stop(t+.32)}
+function drop(t,lvl){ // 雨粒：高さのない、こもった「パツ」
+  const n=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain(),p=ac.createStereoPanner();
+  n.buffer=noiseBuf;f.type='bandpass';f.frequency.value=rr(500,1400);f.Q.value=rr(.8,1.4);
+  const a=rr(.02,.06)*(.6+.4*lvl),d=rr(.018,.035);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.002);g.gain.exponentialRampToValueAtTime(.0001,t+d);p.pan.value=rr(-.9,.9);
+  n.connect(f);f.connect(g);g.connect(p);p.connect(rainBus);n.start(t,Math.random()*1.8,d+.01)}
+function drip(t){ // 軒先のしずく：左手前で低く短い「ポタ」
+  const o=ac.createOscillator(),g=ac.createGain(),p=ac.createStereoPanner(),f=rr(360,440);
+  o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.85,t+.06);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.05,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+.12);
+  const n=ac.createBufferSource(),nf=ac.createBiquadFilter(),ng=ac.createGain(); // 着地の「タ」
+  n.buffer=noiseBuf;nf.type='bandpass';nf.frequency.value=900;nf.Q.value=1;ng.gain.setValueAtTime(.03,t);ng.gain.exponentialRampToValueAtTime(.0001,t+.02);
+  p.pan.value=-.55;const sd=ac.createGain();sd.gain.value=.15;
+  o.connect(g);n.connect(nf);nf.connect(ng);ng.connect(p);g.connect(p);p.connect(rainBus);g.connect(sd);sd.connect(reverbIn);
+  o.start(t);o.stop(t+.14);n.start(t,Math.random()*1.8,.03)}
 function rainTick(){const now=ac.currentTime,h=now+.3,tgt=RAIN_T[S.settings.weather];
   rainLvl+=(tgt-rainLvl)*.02; // 約3秒かけて強まる・弱まる
   rainHiss.gain.setTargetAtTime(.05*rainLvl+.12*rainLvl*rainLvl,now,.3);
@@ -296,7 +302,7 @@ function rainTick(){const now=ac.currentTime,h=now+.3,tgt=RAIN_T[S.settings.weat
   while(rainLvl>.03&&nextDrop<h){drop(nextDrop,rainLvl);nextDrop+=-Math.log(1-Math.random())/(2+14*rainLvl)}
   if(tgt>0&&rainLvl>.2)dripUntil=now+90; // 雨がやんでも90秒ほど、しずくが残る
   if(now<dripUntil){const fade=tgt>0?1:(dripUntil-now)/90;if(nextDrip<now)nextDrip=now+rr(.3,1);
-    while(nextDrip<h){if(Math.random()<.35+.65*fade)drip(nextDrip);nextDrip+=rr(.7,1.5)/(.4+.6*fade)}}}
+    while(nextDrip<h){if(Math.random()<.35+.65*fade)drip(nextDrip);nextDrip+=rr(.9,2.4)/(.4+.6*fade)}}}
 function setWeather(w){if(S.settings.weather===w)return;S.settings.weather=w;save();renderWeather()}
 function renderWeather(){const el=document.getElementById('weather');el.innerHTML='';for(const[k,l]of[['clear','晴れ'],['light','小雨']]){
   const b=document.createElement('button');b.textContent=l;b.className=S.settings.weather===k?'on':'';b.onclick=()=>setWeather(k);el.appendChild(b)}}
