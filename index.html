@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>虫の音の庭</title>
+<meta name="description" content="秋の虫をさがして、自分だけの庭で虫の音を育てるBGMアプリ。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="虫の音の庭">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:title" content="虫の音の庭">
+<meta property="og:description" content="秋の虫をさがして、自分だけの庭で虫の音を育てる。">
+<meta property="og:url" content="https://ka428387.github.io/mushi-no-niwa/">
+<meta property="og:image" content="https://ka428387.github.io/mushi-no-niwa/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root{--bg:#0b1020;--panel:#141b30;--panel2:#1b2440;--line:#27314f;--text:#ebe7da;--sub:#9aa3bb;--accent:#f0c96a;--green:#8fd4a8;--danger:#e58a7a}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+header{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:12px 16px 8px;padding-top:max(12px,env(safe-area-inset-top))}
+h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.08em;flex:1}
+h1 small{font-size:11px;color:var(--sub);font-weight:400;letter-spacing:0;margin-left:6px}
+#playBtn{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px}
+nav{max-width:760px;margin:0 auto 10px;padding:0 16px;display:flex;gap:6px}
+nav button{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 0;font-size:14px;color:var(--sub)}
+nav button.on{background:var(--panel2);color:var(--accent);border-color:#4a4a3a}
+main{max-width:760px;margin:0 auto;padding:0 16px 48px}
+section{display:none}section.on{display:block}
+.stage{position:relative;width:100%;height:min(60vh,500px);min-height:320px;border-radius:14px;overflow:hidden;background:#000;touch-action:none;user-select:none;-webkit-user-select:none}
+.stage canvas{display:block;width:100%;height:100%}
+.chips{display:flex;gap:6px;margin:10px 0 6px;flex-wrap:wrap}
+.chips button{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--sub)}
+.chips button.on{color:var(--text);border-color:var(--green)}
+.hint{font-size:12.5px;color:var(--sub);line-height:1.7;margin:6px 2px}
+.stat{position:absolute;left:10px;top:8px;font-size:12px;color:#c9cbd6;opacity:.8;pointer-events:none;text-shadow:0 1px 3px #000}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--sub);font-size:14px;line-height:1.8;pointer-events:none;padding:20px}
+.ctrls{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:14px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ctrls label{display:block;font-size:12.5px;color:var(--sub)}
+.ctrls label b{color:var(--text);font-weight:500;margin-left:4px}
+.ctrls input[type=range]{width:100%;accent-color:var(--accent);margin:6px 0 0}
+.ctrls select{width:100%;margin-top:6px;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px}
+.ctrls .note{grid-column:1/-1;font-size:11.5px;color:var(--sub);margin:-4px 0 0}
+h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
+.list{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.row canvas{width:40px;height:30px;flex:none}
+.row .nm{flex:1;font-size:13.5px;line-height:1.4}
+.row .nm small{display:block;color:var(--sub);font-size:11.5px}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px}
+.btn.pri{border-color:var(--accent);color:var(--accent)}
+.btn.warn{color:var(--danger)}
+.btn:disabled{opacity:.4;cursor:default}
+.zukan{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.card canvas{width:100%;height:70px;background:radial-gradient(circle at 50% 60%,#1d2848,#10162a);border-radius:8px}
+.card .t{font-size:15px;font-weight:600}
+.card .v{font-size:12.5px;color:var(--accent)}
+.card .d{font-size:12px;color:var(--sub);line-height:1.65;flex:1}
+.card .f{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--sub)}
+.card.unk .t,.card.unk .v{color:#555d75}
+.modal{position:fixed;inset:0;background:rgba(3,5,12,.6);display:none;align-items:flex-end;justify-content:center;z-index:10;padding:16px}
+.modal.on{display:flex}
+.sheet{width:100%;max-width:440px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:env(safe-area-inset-bottom)}
+.sheet h3{margin:0 0 4px;font-size:17px}
+.sheet p{margin:4px 0 12px;color:var(--sub);font-size:13px;line-height:1.7}
+.sheet canvas{width:100%;height:90px;background:radial-gradient(circle at 50% 60%,#1d2848,#10162a);border-radius:10px;margin-bottom:10px}
+.sheet .acts{display:flex;gap:8px;flex-wrap:wrap}
+.sheet .acts .btn{flex:1;padding:10px;font-size:14px}
+#start{position:fixed;inset:0;background:radial-gradient(circle at 70% 20%,#1f2a4d,#070a14 70%);z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px}
+#start h2{font-size:26px;color:var(--text);letter-spacing:.2em;margin:0}
+#start p{color:var(--sub);font-size:13.5px;line-height:1.9;margin:0}
+#start button{background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:999px;padding:12px 40px;font-size:16px;letter-spacing:.2em}
+@media (max-width:480px){.ctrls{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="start">
+  <h2>虫の音の庭</h2>
+  <p>夜の草むらで秋の虫をさがして、<br>自分だけの庭に放して音を育てる。<br><small>イヤホンだと、虫のいる方向が聞き分けられます。</small></p>
+  <button id="startBtn">はじめる</button>
+</div>
+
+<header>
+  <h1>虫の音の庭<small id="clock"></small></h1>
+  <button id="playBtn">一時停止</button>
+</header>
+<nav>
+  <button data-tab="field">探す</button>
+  <button data-tab="garden">庭</button>
+  <button data-tab="zukan">図鑑</button>
+</nav>
+
+<main>
+  <section id="field">
+    <div class="stage" id="fstage"><canvas id="fc"></canvas><div class="stat" id="fstat"></div></div>
+    <div class="chips" id="areas"></div>
+    <p class="hint">灯りを動かして声のする方へ。<b>急いで近づくと鳴きやみます</b>。灯りの中で虫が光ったら、そこをタップして網をふります。<br>パソコンはマウスで灯りを動かしてクリック。スマホはドラッグで灯りを動かし、灯りのそばをタップ。</p>
+  </section>
+
+  <section id="garden">
+    <div class="stage" id="gstage"><canvas id="gc"></canvas><div class="stat" id="gstat"></div><div class="empty" id="gempty">まだ庭に虫がいません。<br>「探す」で虫をつかまえてきましょう。</div></div>
+    <p class="hint">虫をドラッグして置き場所を変えられます。<b>左右</b>で聞こえる方向が、<b>奥／手前</b>で遠さと響きが変わります。虫をタップすると詳しく見られます。</p>
+    <div class="ctrls">
+      <label>気温<b id="tempL"></b><input type="range" id="temp" min="14" max="30" step="1"></label>
+      <label>夜の深さ（響き）<b id="depthL"></b><input type="range" id="depth" min="0" max="1.4" step="0.05"></label>
+      <div class="note">秋の虫は気温が高いほど速く、低いほどゆっくり鳴きます。</div>
+      <label>風の音<b id="windL"></b><input type="range" id="wind" min="0" max="1" step="0.05"></label>
+      <label>音量<b id="volL"></b><input type="range" id="vol" min="0" max="1" step="0.05"></label>
+      <label>おやすみタイマー<select id="timer"><option value="0">なし</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option><option value="90">90分</option></select></label>
+      <label>&nbsp;<b id="timerL" style="margin:0"></b></label>
+    </div>
+    <h2 id="benchH">控えの虫かご</h2>
+    <div class="list" id="bench"></div>
+  </section>
+
+  <section id="zukan">
+    <p class="hint" id="zukanStat"></p>
+    <div class="zukan" id="zgrid"></div>
+  </section>
+</main>
+
+<div class="modal" id="catchM"><div class="sheet">
+  <canvas id="catchC"></canvas>
+  <h3 id="catchT"></h3>
+  <p id="catchP"></p>
+  <div class="acts"><button class="btn" id="catchMore">つづけて探す</button><button class="btn pri" id="catchGo">庭へ行く</button></div>
+</div></div>
+
+<div class="modal" id="bugM"><div class="sheet">
+  <canvas id="bugC"></canvas>
+  <h3 id="bugT"></h3>
+  <p id="bugP"></p>
+  <div class="acts">
+    <button class="btn" id="bugRename">名前</button>
+    <button class="btn" id="bugMute">休ませる</button>
+    <button class="btn" id="bugBench">控えへ</button>
+    <button class="btn warn" id="bugFree">逃がす</button>
+  </div>
+  <div class="acts" style="margin-top:8px"><button class="btn" id="bugClose">閉じる</button></div>
+</div></div>
+
+<script>
+'use strict';
+// ───────── 虫の種類 ─────────
+const rr=(a,b)=>a+Math.random()*(b-a), ri=(a,b)=>Math.floor(rr(a,b+1)), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+const SPECIES={
+  suzumushi:{name:'スズムシ',voice:'リーン、リーン',freq:4300,am:[62,.55],gain:.32,
+    color:'#221d16',wing:'#b8ad86',len:18,wd:.55,ant:1.7,
+    desc:'平安時代から声を楽しまれてきた鳴く虫の代表。江戸時代には飼育して売り歩く「虫売り」もいた。翅を立ててこすり合わせて鳴く。',
+    phrase(v,t,k){let T=t;const n=ri(2,4);for(let i=0;i<n;i++){const d=rr(.26,.34)/Math.sqrt(k);v.glide(T,T+d,.985,1);v.tone(T,d,1,.03,.09);T+=d+.2/k}return T-t+rr(.6,2.2)/k}},
+  emma:{name:'エンマコオロギ',voice:'コロコロリー',freq:3900,am:[45,.45],gain:.34,
+    color:'#3a2a1c',wing:'#5a4430',len:24,wd:.5,ant:1.4,
+    desc:'日本で最も大きなコオロギの仲間。顔つきが閻魔さまに似ていることから名がついた。草むらや畑のすみでよく鳴いている。',
+    phrase(v,t,k){let T=t;v.freq(T,1);const P=m=>{for(let j=0;j<m;j++){v.tone(T,.022,.9,.003,.008);T+=Math.max(.026,.037/k)}};
+      P(ri(3,4));T+=.05/k;P(ri(3,4));T+=.07/k;const d=.3/Math.sqrt(k);v.glide(T,T+d,1,.97);v.tone(T,d,1,.02,.1);T+=d;return T-t+rr(.5,1.6)/k}},
+  matsumushi:{name:'マツムシ',voice:'チンチロリン',freq:3100,am:[30,.2],gain:.34,
+    color:'#8a7550',wing:'#b39c6c',len:20,wd:.5,ant:1.5,
+    desc:'ススキなどの草原にすむ。声はよく知られているのに、姿を見たことのある人は少ない。和歌や唱歌にも多く登場する。',
+    phrase(v,t,k){let T=t;v.freq(T,1);v.tone(T,.07,1,.004,.05);T+=.16/k;v.freq(T,1.07);v.tone(T,.035,.8,.003,.02);T+=Math.max(.04,.055/k);
+      v.freq(T,1);v.tone(T,.035,.8,.003,.02);T+=.07/k;v.freq(T,1.1);v.tone(T,.2,.9,.004,.16);T+=.2;return T-t+rr(1.1,2.3)/k}},
+  kantan:{name:'カンタン',voice:'ルルルルル…',freq:2150,am:[48,.85],gain:.38,
+    color:'#b8d59a',wing:'#dcebc4',len:16,wd:.32,ant:1.8,
+    desc:'淡い緑色の細い体で「鳴く虫の女王」とも呼ばれる。クズなどの葉の上で、やわらかく長く鳴き続ける。',
+    phrase(v,t,k){const d=rr(1.8,4.5);v.freq(t,1);v.glide(t,t+d,1,.99);v.tone(t,d,1,.35,.6);return d+rr(.6,2)/k}},
+  kutsuwa:{name:'クツワムシ',voice:'ガチャガチャ',freq:2800,noise:true,q:1.3,am:[110,.9],gain:.3,
+    color:'#4f8a3c',wing:'#6fae55',len:30,wd:.55,ant:1.6,
+    desc:'馬の口につける轡（くつわ）が鳴る音に似ていることから名がついた。大型のキリギリスの仲間で、声もにぎやか。',
+    phrase(v,t,k){let T=t;const n=ri(8,18);for(let i=0;i<n;i++){v.tone(T,.045,.55,.003,.02);T+=Math.max(.05,.06/k);v.tone(T,.075,1,.004,.03);T+=Math.max(.085,.13/k)}return T-t+rr(2.5,6)/k}},
+  umaoi:{name:'ウマオイ',voice:'スイーッチョン',freq:3600,am:[90,.55],gain:.3,
+    color:'#5fa84a',wing:'#86c56c',len:24,wd:.32,ant:2.2,
+    desc:'馬を追う馬子（まご）の声に聞こえることから名がついた。ほかの虫を食べる肉食の虫で、林のへりの草木で鳴く。',
+    phrase(v,t,k){let T=t;const n=ri(1,3);for(let i=0;i<n;i++){const d=.32;v.glide(T,T+d,.93,1.03);v.tone(T,d,.9,.22,.03);T+=d+.1/k;v.freq(T,1.12);v.tone(T,.06,1,.003,.04);T+=.06+.45/k}return T-t+rr(1,2.5)/k}},
+  kanetataki:{name:'カネタタキ',voice:'チッ、チッ、チッ',freq:5200,am:[1,0],gain:.3,
+    color:'#6b5040',wing:'#8a6b52',len:10,wd:.45,ant:1.2,
+    desc:'鉦（かね）をたたく音にたとえられる。体長1cmほどの小さな虫で、生け垣や木の上で鳴く。声はするのに見つけにくい。',
+    phrase(v,t,k){let T=t;const n=ri(4,11);for(let i=0;i<n;i++){v.tone(T,.014,1,.001,.012);T+=rr(.26,.32)/k}return T-t+rr(3,8)/k}},
+  kusahibari:{name:'クサヒバリ',voice:'フィリリリリ…',freq:5900,am:[70,.7],gain:.2,shy:true,
+    color:'#a88a58',wing:'#d8c08a',len:8,wd:.45,ant:1.9,
+    desc:'体長7mmほどの小さなコオロギの仲間。ヒバリのように澄んだ声で、昼間にも鳴く。とても臆病で、近づくとすぐ黙る。',
+    phrase(v,t,k){const d=rr(1,2.4);v.tone(t,d,1,.05,.15);return d+rr(.5,1.3)/k}},
+};
+const SP_KEYS=Object.keys(SPECIES);
+
+const AREAS={
+  kusamura:{name:'庭のはずれの草むら',sky:['#0d1530','#131c33'],ground:['#0f1a14','#07100b'],blade:['#2f4a2c','#3d5c35','#26402a'],n:7,
+    w:{emma:5,suzumushi:4,kanetataki:2,matsumushi:1,kusahibari:1}},
+  kawara:{name:'河原のススキ原',sky:['#101838','#1b2238'],ground:['#1a1a14','#0c0c08'],blade:['#5b5436','#6e6541','#4a4a30'],n:7,susuki:true,
+    w:{matsumushi:4,emma:3,kutsuwa:2,suzumushi:1,kusahibari:1}},
+  hayashi:{name:'雑木林のへり',sky:['#0a1026','#0f1628'],ground:['#0c150f','#050a07'],blade:['#24402a','#2e5233','#1c3322'],n:6,trees:true,
+    w:{kantan:4,umaoi:3,kanetataki:3,kutsuwa:2,kusahibari:1}},
+};
+
+// ───────── 保存 ─────────
+const KEY='mushinoniwa.v1';
+const S=Object.assign({bugs:[],nextId:1,seen:{},settings:{temp:22,depth:.7,wind:.35,vol:.8},area:'kusamura'},(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}})());
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const GARDEN_MAX=12;
+const inGarden=()=>S.bugs.filter(b=>b.garden);
+
+function traits(b){const t=[];t.push(b.pitch<.98?'低めの声':b.pitch>1.02?'高めの声':'ふつうの声');t.push(b.rate>1.04?'せっかち':b.rate<.96?'のんびり屋':'マイペース');return t.join('・')}
+
+// ───────── 音 ─────────
+let ac,master,reverbIn,fieldBus,gardenBus,previewBus,noiseBuf,windGain,playing=true;
+function makeIR(sec){const n=ac.sampleRate*sec,b=ac.createBuffer(2,n,ac.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3.2)}return b}
+function initAudio(){
+  const AC=window.AudioContext||window.webkitAudioContext;ac=new AC();
+  try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+  master=ac.createGain();master.gain.value=S.settings.vol;
+  const shelf=ac.createBiquadFilter();shelf.type='highshelf';shelf.frequency.value=5000;shelf.gain.value=-5;
+  const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3;
+  master.connect(shelf);shelf.connect(comp);comp.connect(ac.destination);
+  const rev=ac.createConvolver();rev.buffer=makeIR(3.2);reverbIn=ac.createGain();reverbIn.gain.value=S.settings.depth;reverbIn.connect(rev);rev.connect(master);
+  fieldBus=ac.createGain();gardenBus=ac.createGain();previewBus=ac.createGain();[fieldBus,gardenBus,previewBus].forEach(b=>b.connect(master));
+  noiseBuf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);{const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+  // 風：ブラウンノイズ寄りの低い音にゆっくりした揺らぎ
+  const wb=ac.createBuffer(2,ac.sampleRate*4,ac.sampleRate);for(let c=0;c<2;c++){const d=wb.getChannelData(c);let l=0;for(let i=0;i<d.length;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.5}}
+  const ws=ac.createBufferSource();ws.buffer=wb;ws.loop=true;const wl=ac.createBiquadFilter();wl.type='lowpass';wl.frequency.value=700;
+  const gust=ac.createGain();gust.gain.value=.6;const glfo=ac.createOscillator();glfo.frequency.value=.07;const glg=ac.createGain();glg.gain.value=.4;glfo.connect(glg);glg.connect(gust.gain);glfo.start();
+  windGain=ac.createGain();windGain.gain.value=S.settings.wind*.5;ws.connect(wl);wl.connect(gust);gust.connect(windGain);windGain.connect(master);ws.start();
+  setInterval(tick,60);
+}
+const tempo=()=>clamp(1+(S.settings.temp-22)*.045,.6,1.45);
+
+class Voice{
+  constructor(spKey,ind,bus){
+    const sp=SPECIES[spKey];this.sp=sp;this.ind=ind;this.marks=[];this.lastEnd=0;this.silentUntil=0;this.muted=false;
+    this.env=ac.createGain();this.env.gain.value=0;
+    this.am=ac.createGain();const[amf,amd]=sp.am;this.am.gain.value=1-amd/2;
+    this.lfo=ac.createOscillator();this.lfo.frequency.value=amf;const lg=ac.createGain();lg.gain.value=amd/2;this.lfo.connect(lg);lg.connect(this.am.gain);this.lfo.start();
+    this.base=sp.freq*(ind.pitch||1);
+    if(sp.noise){this.src=ac.createBufferSource();this.src.buffer=noiseBuf;this.src.loop=true;const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=this.base;f.Q.value=sp.q;this.src.connect(f);f.connect(this.am);this.fp=f.frequency;this.src.start(0,Math.random()*1.5)}
+    else{this.src=ac.createOscillator();this.src.frequency.value=this.base;this.src.connect(this.am);this.fp=this.src.frequency;this.src.start()}
+    this.am.connect(this.env);
+    const lvl=ac.createGain();lvl.gain.value=sp.gain;this.env.connect(lvl);
+    this.out=ac.createGain();this.out.gain.value=0;lvl.connect(this.out);
+    this.pan=ac.createStereoPanner();this.out.connect(this.pan);this.pan.connect(bus);
+    this.send=ac.createGain();this.send.gain.value=.3;this.out.connect(this.send);this.send.connect(reverbIn);
+    this.nodes=[this.env,this.am,lg,lvl,this.out,this.pan,this.send];
+    this.nextT=ac.currentTime+.1+Math.random()*2.5;
+  }
+  k(){return tempo()*(this.ind.rate||1)}
+  tone(t,d,a,att,rel){t=Math.max(t,this.lastEnd+.002);att=Math.min(att,d*.5);rel=Math.min(rel,d-att);const g=this.env.gain;
+    g.setValueAtTime(0,t);g.linearRampToValueAtTime(a,t+att);g.setValueAtTime(a,t+d-rel);g.linearRampToValueAtTime(0,t+d);this.lastEnd=t+d;this.marks.push([t,t+d])}
+  freq(t,r){this.fp.setValueAtTime(this.base*r,Math.max(t,this.lastEnd))}
+  glide(t0,t1,r0,r1){t0=Math.max(t0,this.lastEnd);this.fp.setValueAtTime(this.base*r0,t0);this.fp.linearRampToValueAtTime(this.base*r1,Math.max(t1,t0+.01))}
+  schedule(h){
+    const now=ac.currentTime;if(this.nextT<now)this.nextT=now+.05;
+    while(this.nextT<h){
+      if(this.muted||now<this.silentUntil){this.nextT=Math.max(this.nextT+.3,this.silentUntil);continue}
+      this.nextT+=Math.max(.2,this.sp.phrase(this,this.nextT,this.k()));
+    }
+    this.lfo.frequency.setTargetAtTime(this.sp.am[0]*Math.sqrt(this.k()),now,.3);
+  }
+  singing(now){while(this.marks.length&&this.marks[0][1]<now)this.marks.shift();return this.marks.length>0&&this.marks[0][0]<=now}
+  hush(sec){const now=ac.currentTime;this.silentUntil=now+sec;this.env.gain.cancelScheduledValues(now);this.env.gain.setTargetAtTime(0,now,.03);
+    this.fp.cancelScheduledValues(now);this.lastEnd=now+.1;this.marks=[];this.nextT=this.silentUntil+rr(0,.8)}
+  setMuted(m){this.muted=m;if(m)this.hush(0);else this.nextT=ac.currentTime+.2}
+  stop(){const now=ac.currentTime;this.out.gain.cancelScheduledValues(now);this.out.gain.setTargetAtTime(0,now,.08);this.dead=true;
+    setTimeout(()=>{try{this.src.stop();this.lfo.stop()}catch(e){}this.nodes.forEach(n=>n.disconnect())},600)}
+}
+
+function sfx(kind){if(!ac)return;const t=ac.currentTime;
+  if(kind==='swish'){const s=ac.createBufferSource();s.buffer=noiseBuf;const f=ac.createBiquadFilter();f.type='bandpass';f.Q.value=.8;f.frequency.setValueAtTime(600,t);f.frequency.exponentialRampToValueAtTime(2400,t+.18);
+    const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.05);g.gain.linearRampToValueAtTime(0,t+.22);s.connect(f);f.connect(g);g.connect(master);s.start(t);s.stop(t+.3)}
+  if(kind==='catch'){[880,1320,1760].forEach((fr,i)=>{const o=ac.createOscillator();o.type='triangle';o.frequency.value=fr;const g=ac.createGain();const s=t+i*.09;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.08,s+.01);g.gain.exponentialRampToValueAtTime(.001,s+.9);o.connect(g);g.connect(master);g.connect(reverbIn);o.start(s);o.stop(s+1)})}
+}
+
+// ───────── 描画ヘルパー ─────────
+function fitCanvas(cv){const r=cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);const w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);return{c,W:r.width,H:r.height}}
+function drawBug(c,sp,x,y,s,alpha=1,glow=0){
+  c.save();c.translate(x,y);c.scale(s,s);c.globalAlpha=alpha;const L=sp.len,Wd=L*sp.wd;
+  if(glow>0){const g=c.createRadialGradient(0,0,0,0,0,L*1.4);g.addColorStop(0,`rgba(240,201,106,${.35*glow})`);g.addColorStop(1,'rgba(240,201,106,0)');c.fillStyle=g;c.beginPath();c.arc(0,0,L*1.4,0,7);c.fill()}
+  c.strokeStyle=sp.color;c.lineWidth=Math.max(.8,L/18);c.lineCap='round';
+  for(const m of[-1,1]){c.beginPath();c.moveTo(-L*.05,0);c.lineTo(-L*.35,m*Wd*.9);c.lineTo(-L*.75,m*Wd*.55);c.moveTo(L*.12,0);c.lineTo(L*.2,m*Wd*.8);c.moveTo(L*.28,0);c.lineTo(L*.42,m*Wd*.75);c.stroke();
+    c.beginPath();c.moveTo(L*.55,m*Wd*.1);c.quadraticCurveTo(L*(.7+sp.ant*.3),m*Wd*.9,L*(.5+sp.ant*.55),m*Wd*1.5);c.lineWidth=Math.max(.6,L/30);c.stroke();c.lineWidth=Math.max(.8,L/18)}
+  c.fillStyle=sp.color;c.beginPath();c.ellipse(0,0,L*.5,Wd*.5,0,0,7);c.fill();
+  c.globalAlpha=alpha*.85;c.fillStyle=sp.wing;c.beginPath();c.ellipse(-L*.1,0,L*.38,Wd*.4,0,0,7);c.fill();
+  c.globalAlpha=alpha;c.fillStyle=sp.color;c.beginPath();c.arc(L*.45,0,Wd*.36,0,7);c.fill();
+  c.restore();
+}
+function thumb(cv,spKey,glow=.6){const{c,W,H}=fitCanvas(cv);c.clearRect(0,0,W,H);const sp=SPECIES[spKey];const s=Math.min(W,H*1.6)/(sp.len*2.6);drawBug(c,sp,W/2-sp.len*s*.1,H/2,s,1,glow)}
+function seeded(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646}}
+
+// ───────── 探す ─────────
+const fc=document.getElementById('fc');
+const F={bugs:[],blades:[],lx:0,ly:0,tx:0,ty:0,speed:0,W:0,H:0,respawn:[],net:null,down:null,active:false};
+function pickSpecies(){const w=AREAS[S.area].w;let sum=0;for(const k in w)sum+=w[k];let r=Math.random()*sum;for(const k in w){r-=w[k];if(r<=0)return k}return Object.keys(w)[0]}
+function spawnBug(){const m=40;let x,y,tries=0;do{x=rr(m,F.W-m);y=rr(F.H*.3,F.H-m);tries++}while(tries<20&&(Math.hypot(x-F.lx,y-F.ly)<160||F.bugs.some(b=>Math.hypot(b.x-x,b.y-y)<70)));
+  const sp=pickSpecies();const ind={pitch:1+(Math.random()+Math.random()-1)*.04,rate:1+(Math.random()+Math.random()-1)*.08};
+  F.bugs.push({sp,x,y,ind,voice:new Voice(sp,ind,fieldBus)})}
+function buildBlades(){const A=AREAS[S.area],rnd=seeded(S.area.length*977+13);F.blades=[];const n=Math.round(F.W*F.H/700);
+  for(let i=0;i<n;i++){const y=F.H*.28+rnd()*F.H*.75;F.blades.push({x:rnd()*F.W,y,h:(10+rnd()*28)*(.6+y/F.H),lean:(rnd()-.5)*.6,ph:rnd()*6.28,col:A.blade[Math.floor(rnd()*A.blade.length)],plume:A.susuki&&rnd()<.25})}
+  F.blades.sort((a,b)=>a.y-b.y);
+  F.trees=[];if(A.trees){const r2=seeded(7);for(let x=-20;x<F.W+40;x+=24+r2()*30)F.trees.push({x,h:F.H*(.18+r2()*.14),w:30+r2()*40})}}
+function enterField(){F.active=true;const{W,H}=fitCanvas(fc);F.W=W;F.H=H;F.lx=F.tx=W/2;F.ly=F.ty=H*.6;buildBlades();
+  F.bugs.forEach(b=>b.voice.stop());F.bugs=[];F.respawn=[];for(let i=0;i<AREAS[S.area].n;i++)spawnBug()}
+function leaveField(){F.active=false;F.bugs.forEach(b=>b.voice.stop());F.bugs=[]}
+function fieldLocal(e){const r=fc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+fc.addEventListener('pointerdown',e=>{const p=fieldLocal(e);F.down={x:p.x,y:p.y,moved:false};if(e.pointerType!=='mouse'){F.tx=F.lx;F.ty=F.ly}fc.setPointerCapture(e.pointerId)});
+fc.addEventListener('pointermove',e=>{const p=fieldLocal(e);if(e.pointerType==='mouse'){F.tx=p.x;F.ty=p.y}
+  if(F.down){if(Math.hypot(p.x-F.down.x,p.y-F.down.y)>10)F.down.moved=true;if(F.down.moved&&e.pointerType!=='mouse'){F.tx+=p.x-F.down.x;F.ty+=p.y-F.down.y;F.down.x=p.x;F.down.y=p.y}}});
+fc.addEventListener('pointerup',e=>{const p=fieldLocal(e);const d=F.down;F.down=null;if(!d||d.moved)return;
+  if(Math.hypot(p.x-F.lx,p.y-F.ly)<60)swing(p.x,p.y);else{F.tx=p.x;F.ty=p.y}});
+function swing(x,y){if(F.net)return;F.net={x,y,t:performance.now()};sfx('swish');
+  let best=null,bd=1e9;for(const b of F.bugs){const d=Math.hypot(b.x-x,b.y-y);if(d<bd){bd=d;best=b}}
+  const reach=34+(best?SPECIES[best.sp].len*.6:0);
+  if(best&&bd<reach){setTimeout(()=>caught(best),260);return}
+  for(const b of F.bugs){const d=Math.hypot(b.x-x,b.y-y);if(d<110){const a=Math.random()*6.28,r=rr(120,220);b.x=clamp(b.x+Math.cos(a)*r,30,F.W-30);b.y=clamp(b.y+Math.sin(a)*r,F.H*.3,F.H-30);b.voice.hush(rr(3,6))}
+    else if(d<170)b.voice.hush(rr(1.5,3))}}
+let lastCaught=null;
+function caught(fb){const i=F.bugs.indexOf(fb);if(i<0)return;F.bugs.splice(i,1);fb.voice.stop();sfx('catch');F.respawn.push(performance.now()+rr(6000,12000));
+  const n=(S.seen[fb.sp]||0)+1;S.seen[fb.sp]=n;
+  const bug={id:S.nextId++,sp:fb.sp,pitch:fb.ind.pitch,rate:fb.ind.rate,name:SPECIES[fb.sp].name+n+'号',garden:inGarden().length<GARDEN_MAX,...freeSpot(),mute:false};
+  S.bugs.push(bug);save();lastCaught=bug;
+  document.getElementById('catchT').textContent=(n===1?'はじめての ':'')+SPECIES[fb.sp].name+'をつかまえた！';
+  document.getElementById('catchP').textContent=`「${bug.name}」 ${traits(bug)}。`+(bug.garden?'庭に放しました。':'庭がいっぱいなので控えの虫かごに入れました。');
+  document.getElementById('catchM').classList.add('on');thumb(document.getElementById('catchC'),fb.sp,1);renderBench();}
+document.getElementById('catchMore').onclick=()=>document.getElementById('catchM').classList.remove('on');
+document.getElementById('catchGo').onclick=()=>{document.getElementById('catchM').classList.remove('on');show('garden')};
+
+function drawField(now,dt){
+  const{c,W,H}=fitCanvas(fc);if(Math.abs(W-F.W)>2||Math.abs(H-F.H)>2){F.W=W;F.H=H;buildBlades();F.bugs.forEach(b=>{b.x=clamp(b.x,30,W-30);b.y=clamp(b.y,H*.3,H-30)})}
+  const A=AREAS[S.area];
+  // 灯りの移動（速度に上限）
+  const dx=F.tx-F.lx,dy=F.ty-F.ly,dist=Math.hypot(dx,dy),maxStep=420*dt,step=Math.min(dist,maxStep);
+  if(dist>0.1){F.lx+=dx/dist*step;F.ly+=dy/dist*step}F.lx=clamp(F.lx,0,W);F.ly=clamp(F.ly,0,H);
+  F.speed=F.speed*.8+(step/Math.max(dt,.001))*.2;
+  // 空と地面
+  let g=c.createLinearGradient(0,0,0,H*.3);g.addColorStop(0,A.sky[0]);g.addColorStop(1,A.sky[1]);c.fillStyle=g;c.fillRect(0,0,W,H*.3);
+  c.fillStyle='rgba(240,232,200,.9)';c.beginPath();c.arc(W*.82,H*.1,11,0,7);c.fill();
+  g=c.createRadialGradient(W*.82,H*.1,0,W*.82,H*.1,70);g.addColorStop(0,'rgba(240,232,200,.18)');g.addColorStop(1,'rgba(240,232,200,0)');c.fillStyle=g;c.fillRect(0,0,W,H*.35);
+  if(F.trees)for(const t of F.trees){c.fillStyle='#070b12';c.beginPath();c.ellipse(t.x,H*.3-t.h*.45,t.w*.6,t.h*.55,0,0,7);c.fill();c.fillRect(t.x-3,H*.3-t.h*.2,6,t.h*.2)}
+  g=c.createLinearGradient(0,H*.28,0,H);g.addColorStop(0,A.ground[0]);g.addColorStop(1,A.ground[1]);c.fillStyle=g;c.fillRect(0,H*.28,W,H);
+  // 草
+  const ts=now/1000;c.lineCap='round';
+  for(const b of F.blades){const sway=Math.sin(ts*.9+b.ph+b.x*.01)*3;c.strokeStyle=b.col;c.lineWidth=1.3;c.beginPath();c.moveTo(b.x,b.y);c.quadraticCurveTo(b.x+b.lean*b.h*.5,b.y-b.h*.6,b.x+b.lean*b.h+sway,b.y-b.h);c.stroke();
+    if(b.plume){c.strokeStyle='rgba(200,185,150,.5)';c.lineWidth=3;c.beginPath();c.moveTo(b.x+b.lean*b.h+sway,b.y-b.h);c.lineTo(b.x+b.lean*b.h+sway*1.5+5,b.y-b.h-10);c.stroke()}}
+  // 虫（灯りの中でだけ見える）
+  const at=ac.currentTime;
+  for(const b of F.bugs){const d=Math.hypot(b.x-F.lx,b.y-F.ly);if(d<95)drawBug(c,SPECIES[b.sp],b.x,b.y,SPECIES[b.sp].len<14?1.3:1,clamp((95-d)/45,0,1),0)}
+  // 暗がり
+  g=c.createRadialGradient(F.lx,F.ly,10,F.lx,F.ly,150);g.addColorStop(0,'rgba(255,220,150,.10)');g.addColorStop(.35,'rgba(4,6,16,.25)');g.addColorStop(1,'rgba(4,6,16,.78)');c.fillStyle=g;c.fillRect(0,0,W,H);
+  // 目の光と声の波紋（ヒント）
+  for(const b of F.bugs){const d=Math.hypot(b.x-F.lx,b.y-F.ly),sing=b.voice.singing(at);
+    if(d<120&&sing){const a=clamp((120-d)/60,0,1)*.9;c.fillStyle=`rgba(255,240,190,${a*(.6+.4*Math.sin(now/60))})`;c.beginPath();c.arc(b.x+SPECIES[b.sp].len*.5,b.y-1,1.6,0,7);c.fill()}
+    if(d<200&&sing){const ph=(now/700)%1;c.strokeStyle=`rgba(240,201,106,${(1-ph)*clamp((200-d)/200,0,1)*.25})`;c.lineWidth=1;c.beginPath();c.arc(b.x,b.y,8+ph*22,0,7);c.stroke()}}
+  // 灯り
+  c.fillStyle='rgba(255,214,140,.95)';c.beginPath();c.arc(F.lx,F.ly,4,0,7);c.fill();
+  c.strokeStyle='rgba(255,214,140,.35)';c.lineWidth=1;c.beginPath();c.arc(F.lx,F.ly,60,0,7);c.stroke();
+  // 網
+  if(F.net){const p=(now-F.net.t)/300;if(p>1)F.net=null;else{c.strokeStyle=`rgba(230,230,220,${1-p})`;c.lineWidth=2;c.beginPath();c.arc(F.net.x,F.net.y,14+p*22,0,7);c.stroke()}}
+  // 音の空間化・驚いて黙る
+  for(const b of F.bugs){const d=Math.hypot(b.x-F.lx,b.y-F.ly),sp=SPECIES[b.sp];
+    const lim=sp.shy?150:220,rad=sp.shy?190:140;if(F.speed>lim&&d<rad&&at>b.voice.silentUntil)b.voice.hush(rr(2.5,5));
+    const gain=Math.pow(clamp(1-d/(W*.95),0,1),2)*1.1+.015;
+    b.voice.out.gain.setTargetAtTime(gain,at,.05);b.voice.pan.pan.setTargetAtTime(clamp((b.x-F.lx)/(W*.45),-1,1)*.9,at,.05);b.voice.send.gain.setTargetAtTime(.25+.4*clamp(d/W,0,1),at,.1)}
+  // 補充
+  F.respawn=F.respawn.filter(t=>{if(now>t){spawnBug();return false}return true});
+  document.getElementById('fstat').textContent=`${A.name}　声の数 ${F.bugs.length}`;
+}
+function renderAreas(){const el=document.getElementById('areas');el.innerHTML='';for(const k in AREAS){const b=document.createElement('button');b.textContent=AREAS[k].name;b.className=k===S.area?'on':'';
+  b.onclick=()=>{S.area=k;save();renderAreas();if(F.active)enterField()};el.appendChild(b)}}
+
+// ───────── 庭 ─────────
+const gc=document.getElementById('gc');
+const G={voices:new Map(),drag:null,W:0,H:0,sel:null};
+const gRnd=seeded(42);const GDECO={susuki:Array.from({length:7},()=>({x:gRnd(),y:.3+gRnd()*.65,n:5+Math.floor(gRnd()*5),ph:gRnd()*6})),stones:Array.from({length:5},()=>({x:gRnd(),y:.35+gRnd()*.6,r:8+gRnd()*14}))};
+function freeSpot(){let best=null,bd=-1;for(let i=0;i<30;i++){const x=rr(.12,.88),y=rr(.3,.92);const d=Math.min(9,...inGarden().map(b=>Math.hypot(b.x-x,(b.y-y)*.8)));if(d>bd){bd=d;best={x,y}}}return best}
+function applyPos(b){const v=G.voices.get(b.id);if(!v||!ac)return;const now=ac.currentTime,near=b.y;
+  v.pan.pan.setTargetAtTime(clamp((b.x-.5)*1.8,-1,1),now,.05);v.out.gain.setTargetAtTime(.25+.75*Math.pow(near,1.3),now,.05);v.send.gain.setTargetAtTime(.12+.7*(1-near),now,.05)}
+function syncGarden(){ // 庭にいる虫と声を一致させる
+  if(!ac)return;const ids=new Set(inGarden().map(b=>b.id));
+  for(const[id,v]of G.voices)if(!ids.has(id)){v.stop();G.voices.delete(id)}
+  for(const b of inGarden())if(!G.voices.has(b.id)){const v=new Voice(b.sp,b,gardenBus);G.voices.set(b.id,v);if(b.mute)v.setMuted(true);applyPos(b)}}
+function stopGarden(){for(const v of G.voices.values())v.stop();G.voices.clear()}
+function gLocal(e){const r=gc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+const gTop=()=>G.H*.22;
+function toPx(b){return{x:24+b.x*(G.W-48),y:gTop()+b.y*(G.H-gTop()-24)}}
+function fromPx(x,y){return{x:clamp((x-24)/(G.W-48),0,1),y:clamp((y-gTop())/(G.H-gTop()-24),0,1)}}
+gc.addEventListener('pointerdown',e=>{const p=gLocal(e);let hit=null,hd=1e9;for(const b of inGarden()){const q=toPx(b),d=Math.hypot(q.x-p.x,q.y-p.y);if(d<Math.max(26,SPECIES[b.sp].len)&&d<hd){hd=d;hit=b}}
+  if(hit){G.drag={b:hit,sx:p.x,sy:p.y,moved:false};gc.setPointerCapture(e.pointerId)}});
+gc.addEventListener('pointermove',e=>{if(!G.drag)return;const p=gLocal(e);if(Math.hypot(p.x-G.drag.sx,p.y-G.drag.sy)>6)G.drag.moved=true;if(G.drag.moved){Object.assign(G.drag.b,fromPx(p.x,p.y));applyPos(G.drag.b)}});
+gc.addEventListener('pointerup',()=>{const d=G.drag;G.drag=null;if(!d)return;if(d.moved)save();else openBug(d.b)});
+function drawGarden(now){
+  const{c,W,H}=fitCanvas(gc);G.W=W;G.H=H;const top=gTop();
+  let g=c.createLinearGradient(0,0,0,top);g.addColorStop(0,'#0a1230');g.addColorStop(1,'#18224a');c.fillStyle=g;c.fillRect(0,0,W,top);
+  const sr=seeded(3);c.fillStyle='rgba(255,255,240,.6)';for(let i=0;i<40;i++){const x=sr()*W,y=sr()*top*.9,tw=.5+.5*Math.sin(now/900+i);c.globalAlpha=tw*.7;c.fillRect(x,y,1.2,1.2)}c.globalAlpha=1;
+  c.fillStyle='#f4ecd0';c.beginPath();c.arc(W*.8,top*.42,14,0,7);c.fill();g=c.createRadialGradient(W*.8,top*.42,0,W*.8,top*.42,90);g.addColorStop(0,'rgba(244,236,208,.2)');g.addColorStop(1,'rgba(244,236,208,0)');c.fillStyle=g;c.fillRect(0,0,W,top*1.5);
+  c.fillStyle='#070b14';c.beginPath();c.moveTo(0,top);for(let x=0;x<=W;x+=20)c.lineTo(x,top-8-Math.sin(x*.013)*6-Math.sin(x*.041)*4);c.lineTo(W,top);c.fill();
+  g=c.createLinearGradient(0,top,0,H);g.addColorStop(0,'#101a18');g.addColorStop(1,'#1b2a1f');c.fillStyle=g;c.fillRect(0,top,W,H-top);
+  c.fillStyle='rgba(200,210,255,.18)';c.font='11px sans-serif';c.textAlign='center';c.fillText('奥（遠く・よく響く）',W/2,top+14);c.fillText('手前（近く・はっきり）',W/2,H-8);
+  c.textAlign='left';c.fillText('左',8,(top+H)/2);c.textAlign='right';c.fillText('右',W-8,(top+H)/2);
+  for(const s of GDECO.stones){const q=toPx(s);c.fillStyle='#2a3130';c.beginPath();c.ellipse(q.x,q.y,s.r*(.6+s.y*.6),s.r*.5*(.6+s.y*.6),0,0,7);c.fill()}
+  const ts=now/1000;c.lineCap='round';
+  for(const s of GDECO.susuki){const q=toPx(s),sc=.6+s.y*.7;for(let i=0;i<s.n;i++){const a=(i/(s.n-1)-.5)*1.1,h=40*sc*(.7+.3*Math.cos(a*2)),sw=Math.sin(ts*.8+s.ph+i*.3)*3*sc;
+    const ex=q.x+Math.sin(a)*h+sw,ey=q.y-Math.cos(a)*h;c.strokeStyle='#3e5236';c.lineWidth=1.4;c.beginPath();c.moveTo(q.x,q.y);c.quadraticCurveTo(q.x+Math.sin(a)*h*.4,q.y-h*.6,ex,ey);c.stroke();
+    if(i%2===0){c.strokeStyle='rgba(215,200,160,.55)';c.lineWidth=3*sc;c.beginPath();c.moveTo(ex,ey);c.lineTo(ex+sw+4*Math.sin(a+.3),ey-10*sc);c.stroke()}}}
+  const at=ac?ac.currentTime:0;const bugs=inGarden().slice().sort((a,b)=>a.y-b.y);
+  for(const b of bugs){const q=toPx(b),sp=SPECIES[b.sp],v=G.voices.get(b.id),sing=v&&playing&&v.singing(at);
+    const s=(.75+.55*b.y)*(sp.len<14?1.5:1);drawBug(c,sp,q.x,q.y,s,b.mute?.45:1,sing?1:0);
+    if(sing){const ph=(now/600)%1;c.strokeStyle=`rgba(240,201,106,${(1-ph)*.35})`;c.lineWidth=1;c.beginPath();c.arc(q.x,q.y,sp.len*s*.6+ph*16,0,7);c.stroke()}
+    c.fillStyle=b.mute?'rgba(200,200,210,.35)':'rgba(230,230,220,.6)';c.font='10px sans-serif';c.textAlign='center';c.fillText(b.name+(b.mute?'（休）':''),q.x,q.y+sp.len*s*.5+12)}
+  document.getElementById('gempty').style.display=bugs.length?'none':'flex';
+  document.getElementById('gstat').textContent=bugs.length?`庭の虫 ${bugs.length}／${GARDEN_MAX}`:'';
+}
+function openBug(b){G.sel=b;const sp=SPECIES[b.sp];document.getElementById('bugT').textContent=b.name;
+  document.getElementById('bugP').textContent=`${sp.name}（${sp.voice}）・${traits(b)}`;
+  document.getElementById('bugMute').textContent=b.mute?'鳴かせる':'休ませる';thumb(document.getElementById('bugC'),b.sp,.8);document.getElementById('bugM').classList.add('on')}
+const closeBug=()=>{document.getElementById('bugM').classList.remove('on');G.sel=null};
+document.getElementById('bugClose').onclick=closeBug;
+document.getElementById('bugRename').onclick=()=>{const b=G.sel;const n=prompt('名前',b.name);if(n&&n.trim()){b.name=n.trim().slice(0,12);save();openBug(b);renderBench()}};
+document.getElementById('bugMute').onclick=()=>{const b=G.sel;b.mute=!b.mute;const v=G.voices.get(b.id);if(v){v.setMuted(b.mute);applyPos(b)}save();closeBug()};
+document.getElementById('bugBench').onclick=()=>{G.sel.garden=false;save();syncGarden();renderBench();closeBug()};
+document.getElementById('bugFree').onclick=()=>{const b=G.sel;if(!confirm(`${b.name}を野に逃がしますか？`))return;S.bugs=S.bugs.filter(x=>x!==b);save();syncGarden();renderBench();closeBug()};
+function renderBench(){const el=document.getElementById('bench');const list=S.bugs.filter(b=>!b.garden);el.innerHTML='';
+  document.getElementById('benchH').textContent=`控えの虫かご（${list.length}）`;
+  if(!list.length){el.innerHTML='<p class="hint">庭がいっぱいのときや、休ませたい虫はここに入ります。</p>';return}
+  const full=inGarden().length>=GARDEN_MAX;
+  for(const b of list){const r=document.createElement('div');r.className='row';const cv=document.createElement('canvas');r.appendChild(cv);
+    const nm=document.createElement('div');nm.className='nm';nm.innerHTML=`${b.name}<small>${SPECIES[b.sp].name}・${traits(b)}</small>`;r.appendChild(nm);
+    const go=document.createElement('button');go.className='btn pri';go.textContent='庭に出す';go.disabled=full;go.onclick=()=>{b.garden=true;Object.assign(b,freeSpot());save();syncGarden();renderBench()};r.appendChild(go);
+    const fr=document.createElement('button');fr.className='btn warn';fr.textContent='逃がす';fr.onclick=()=>{if(confirm(`${b.name}を野に逃がしますか？`)){S.bugs=S.bugs.filter(x=>x!==b);save();renderBench()}};r.appendChild(fr);
+    el.appendChild(r);requestAnimationFrame(()=>thumb(cv,b.sp,0))}}
+
+// ───────── 設定 ─────────
+function bindCtrl(id,fmt,apply){const el=document.getElementById(id),lb=document.getElementById(id+'L');el.value=S.settings[id];lb.textContent=fmt(+el.value);
+  el.oninput=()=>{S.settings[id]=+el.value;lb.textContent=fmt(+el.value);apply&&ac&&apply(+el.value);save()}}
+bindCtrl('temp',v=>`${v}℃（${v<19?'ゆっくり':v<25?'ふつう':'はやい'}）`);
+bindCtrl('depth',v=>v<.3?'浅い':v<.9?'ふつう':'深い',v=>reverbIn.gain.setTargetAtTime(v,ac.currentTime,.1));
+bindCtrl('wind',v=>v===0?'なし':Math.round(v*100)+'%',v=>windGain.gain.setTargetAtTime(v*.5,ac.currentTime,.2));
+bindCtrl('vol',v=>Math.round(v*100)+'%',v=>{if(playing)master.gain.setTargetAtTime(v,ac.currentTime,.05)});
+let timerEnd=0;
+document.getElementById('timer').onchange=e=>{const m=+e.target.value;timerEnd=m?Date.now()+m*60000:0;if(m&&!playing)togglePlay()};
+function togglePlay(){if(!ac)return;playing=!playing;if(playing){ac.resume();master.gain.setTargetAtTime(S.settings.vol,ac.currentTime,.3)}
+  else{master.gain.setTargetAtTime(0,ac.currentTime,.3);setTimeout(()=>{if(!playing)ac.suspend()},1200)}
+  document.getElementById('playBtn').textContent=playing?'一時停止':'再生'}
+document.getElementById('playBtn').onclick=togglePlay;
+
+// ───────── 図鑑 ─────────
+let preview=null;
+function renderZukan(){const el=document.getElementById('zgrid');el.innerHTML='';let found=0;
+  for(const k of SP_KEYS){const sp=SPECIES[k],n=S.seen[k]||0;if(n)found++;
+    const cd=document.createElement('div');cd.className='card'+(n?'':' unk');const cv=document.createElement('canvas');cd.appendChild(cv);
+    cd.insertAdjacentHTML('beforeend',n?`<div class="t">${sp.name}</div><div class="v">${sp.voice}</div><div class="d">${sp.desc}</div>`:`<div class="t">？？？</div><div class="v">？？？</div><div class="d">まだ出会っていない虫。${Object.keys(AREAS).filter(a=>AREAS[a].w[k]).map(a=>AREAS[a].name).join('、')}で声がするらしい。</div>`);
+    const f=document.createElement('div');f.className='f';f.innerHTML=`<span>つかまえた数 ${n}</span>`;
+    if(n){const b=document.createElement('button');b.className='btn';b.textContent='声を聞く';b.onclick=()=>{if(!ac)return;if(preview)preview.stop();
+      const v=new Voice(k,{pitch:1,rate:1},previewBus);v.out.gain.value=1;v.send.gain.value=.3;v.nextT=ac.currentTime+.05;const end=ac.currentTime+.05+v.sp.phrase(v,ac.currentTime+.05,tempo());preview=v;
+      setTimeout(()=>{if(preview===v){v.stop();preview=null}},(end-ac.currentTime)*1000+300)};f.appendChild(b)}
+    cd.appendChild(f);el.appendChild(cd);
+    requestAnimationFrame(()=>{if(n)thumb(cv,k,0);else{const{c,W,H}=fitCanvas(cv);c.clearRect(0,0,W,H);const s=Math.min(W,H*1.6)/(sp.len*2.6);c.filter='brightness(0)';drawBug(c,{...sp,color:'#060810',wing:'#060810'},W/2,H/2,s,.9,0);c.filter='none'}})}
+  document.getElementById('zukanStat').textContent=`見つけた種類 ${found}／${SP_KEYS.length}　・　つかまえた虫 ${S.bugs.length}匹（庭 ${inGarden().length}）`}
+
+// ───────── 画面切り替えとループ ─────────
+let tab='';
+function show(t){if(t===tab)return;const prev=tab;tab=t;
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));
+  if(!ac)return;
+  if(t==='field'){stopGarden();requestAnimationFrame(enterField)}
+  else{if(prev==='field'||!prev)leaveField();syncGarden()}
+  if(t==='zukan')renderZukan();if(t==='garden')renderBench()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.tab));
+
+function tick(){if(!ac||!playing)return;const h=ac.currentTime+.35;
+  if(tab==='field')F.bugs.forEach(b=>b.voice.schedule(h));else G.voices.forEach(v=>v.schedule(h));
+  if(timerEnd&&Date.now()>timerEnd){timerEnd=0;document.getElementById('timer').value='0';master.gain.setTargetAtTime(0,ac.currentTime,4);setTimeout(()=>{if(!timerEnd&&playing)togglePlay()},15000)}}
+let lastF=performance.now();
+function loop(now){const dt=Math.min(.1,(now-lastF)/1000);lastF=now;
+  if(tab==='field'&&F.active)drawField(now,dt);if(tab==='garden')drawGarden(now);
+  const tl=document.getElementById('timerL');tl.textContent=timerEnd?`あと${Math.ceil((timerEnd-Date.now())/60000)}分で静かになります`:'';
+  requestAnimationFrame(loop)}
+
+document.getElementById('startBtn').onclick=()=>{initAudio();document.getElementById('start').style.display='none';renderAreas();
+  const t=inGarden().length?'garden':'field';tab='';show(t);requestAnimationFrame(loop)};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ac&&playing&&ac.state!=='running')ac.resume()});
+document.addEventListener('pointerdown',()=>{if(ac&&playing&&ac.state==='suspended')ac.resume()});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
