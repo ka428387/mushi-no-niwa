@@ -78,6 +78,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 #start h2{font-size:26px;color:var(--text);letter-spacing:.2em;margin:0}
 #start p{color:var(--sub);font-size:13.5px;line-height:1.9;margin:0}
 #start button{background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:999px;padding:12px 40px;font-size:16px;letter-spacing:.2em}
+.wx{grid-column:1/-1;font-size:12.5px;color:var(--sub)}.wx .chips{margin:6px 0 2px}.wx .chips button{flex:1}
 @media (max-width:480px){.ctrls{grid-template-columns:1fr}}
 </style>
 </head>
@@ -110,6 +111,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
     <div class="stage" id="gstage"><canvas id="gc"></canvas><div class="stat" id="gstat"></div><div class="empty" id="gempty">まだ庭に虫がいません。<br>「探す」で虫をつかまえてきましょう。</div></div>
     <p class="hint">虫をドラッグして置き場所を変えられます。<b>左右</b>で聞こえる方向が、<b>奥／手前</b>で遠さと響きが変わります。虫をタップすると詳しく見られます。</p>
     <div class="ctrls">
+      <div class="wx">天気<div class="chips" id="weather"></div><div style="font-size:11.5px">本降りになると虫たちは雨宿りして鳴きやみ、雨が上がると少しずつ鳴き始めます。</div></div>
       <label>気温<b id="tempL"></b><input type="range" id="temp" min="14" max="30" step="1"></label>
       <label>夜の深さ（響き）<b id="depthL"></b><input type="range" id="depth" min="0" max="1.4" step="0.05"></label>
       <div class="note">秋の虫は気温が高いほど速く、低いほどゆっくり鳴きます。</div>
@@ -204,7 +206,7 @@ const AREAS={
 // ───────── 保存 ─────────
 const KEY='mushinoniwa.v1';
 const S=Object.assign({bugs:[],nextId:1,seen:{},settings:{temp:22,depth:.7,wind:.35,vol:.8},area:'kusamura'},(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}})());
-S.settings=Object.assign({temp:22,depth:.7,wind:.35,vol:.8,soft:.6},S.settings);
+S.settings=Object.assign({temp:22,depth:.7,wind:.35,vol:.8,soft:.6,weather:'clear'},S.settings);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const GARDEN_MAX=12;
 const inGarden=()=>S.bugs.filter(b=>b.garden);
@@ -212,7 +214,7 @@ const inGarden=()=>S.bugs.filter(b=>b.garden);
 function traits(b){const t=[];t.push(b.pitch<.98?'低めの声':b.pitch>1.02?'高めの声':'ふつうの声');t.push(b.rate>1.04?'せっかち':b.rate<.96?'のんびり屋':'マイペース');return t.join('・')}
 
 // ───────── 音 ─────────
-let lowpass,shelf,ac,master,reverbIn,fieldBus,gardenBus,previewBus,noiseBuf,windGain,playing=true;
+let rainBus,rainHiss,lowpass,shelf,ac,master,reverbIn,fieldBus,gardenBus,previewBus,noiseBuf,windGain,playing=true;
 function makeIR(sec){const n=ac.sampleRate*sec,b=ac.createBuffer(2,n,ac.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3.2)}return b}
 function initAudio(){
   const AC=window.AudioContext||window.webkitAudioContext;ac=new AC();
@@ -230,9 +232,42 @@ function initAudio(){
   const ws=ac.createBufferSource();ws.buffer=wb;ws.loop=true;const wl=ac.createBiquadFilter();wl.type='lowpass';wl.frequency.value=700;
   const gust=ac.createGain();gust.gain.value=.6;const glfo=ac.createOscillator();glfo.frequency.value=.07;const glg=ac.createGain();glg.gain.value=.4;glfo.connect(glg);glg.connect(gust.gain);glfo.start();
   windGain=ac.createGain();windGain.gain.value=S.settings.wind*.5;ws.connect(wl);wl.connect(gust);gust.connect(windGain);windGain.connect(master);ws.start();
+  // 雨：葉にあたるサーッという音（高すぎないよう帯域を絞る）
+  rainBus=ac.createGain();rainBus.gain.value=0;rainBus.connect(master);
+  const rb=ac.createBuffer(2,ac.sampleRate*3,ac.sampleRate);for(let c=0;c<2;c++){const d=rb.getChannelData(c);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+  const rs=ac.createBufferSource();rs.buffer=rb;rs.loop=true;const rhp=ac.createBiquadFilter();rhp.type='highpass';rhp.frequency.value=450;
+  const rlp=ac.createBiquadFilter();rlp.type='lowpass';rlp.frequency.value=3200;rlp.Q.value=.4;rainHiss=ac.createGain();rainHiss.gain.value=0;
+  rs.connect(rhp);rhp.connect(rlp);rlp.connect(rainHiss);rainHiss.connect(rainBus);rs.start();
+  rainLvl=RAIN_T[S.settings.weather];
   setInterval(tick,60);
 }
 function setSoft(v,now){const t=now||0;lowpass.frequency.setTargetAtTime(9500-5000*v,t,.05);shelf.gain.setTargetAtTime(-2-9*v,t,.05)}
+// ───────── 雨 ─────────
+const RAIN_T={clear:0,light:.45,heavy:1};
+let rainLvl=0,nextDrop=0,nextDrip=0,dripUntil=0,afterRainAt=0;
+function drop(t,lvl){const o=ac.createOscillator(),g=ac.createGain(),p=ac.createStereoPanner(),f=rr(700,1900);
+  o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.55,t+.04);const a=rr(.008,.03)*(.6+.4*lvl);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+.07);p.pan.value=rr(-.9,.9);
+  o.connect(g);g.connect(p);p.connect(rainBus);o.start(t);o.stop(t+.09)}
+function drip(t){ // 軒先のしずく：左手前で「ポトン」
+  const o=ac.createOscillator(),g=ac.createGain(),p=ac.createStereoPanner(),f=rr(950,1150);
+  o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.48,t+.09);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.05,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+.3);p.pan.value=-.55;
+  const sd=ac.createGain();sd.gain.value=.4;o.connect(g);g.connect(p);p.connect(rainBus);g.connect(sd);sd.connect(reverbIn);o.start(t);o.stop(t+.32)}
+function rainTick(){const now=ac.currentTime,h=now+.3,tgt=RAIN_T[S.settings.weather];
+  rainLvl+=(tgt-rainLvl)*.02; // 約3秒かけて強まる・弱まる
+  rainHiss.gain.setTargetAtTime(.05*rainLvl+.12*rainLvl*rainLvl,now,.3);
+  if(nextDrop<now)nextDrop=now;
+  while(rainLvl>.03&&nextDrop<h){drop(nextDrop,rainLvl);nextDrop+=-Math.log(1-Math.random())/(2+14*rainLvl)}
+  if(tgt>0&&rainLvl>.2)dripUntil=now+90; // 雨がやんでも90秒ほど、しずくが残る
+  if(now<dripUntil){const fade=tgt>0?1:(dripUntil-now)/90;if(nextDrip<now)nextDrip=now+rr(.3,1);
+    while(nextDrip<h){if(Math.random()<.35+.65*fade)drip(nextDrip);nextDrip+=rr(.7,1.5)/(.4+.6*fade)}}}
+function setWeather(w){const prev=S.settings.weather;if(prev===w)return;S.settings.weather=w;save();renderWeather();
+  if(ac&&prev==='heavy'){ // 雨上がり：虫が一匹ずつ鳴き始める
+    const now=ac.currentTime;afterRainAt=now;[...G.voices.values()].sort(()=>Math.random()-.5).forEach((v,i)=>{v.silentUntil=now+4+i*rr(2,5)+rr(0,2);v.nextT=v.silentUntil})}}
+function renderWeather(){const el=document.getElementById('weather');el.innerHTML='';for(const[k,l]of[['clear','晴れ'],['light','小雨'],['heavy','本降り']]){
+  const b=document.createElement('button');b.textContent=l;b.className=S.settings.weather===k?'on':'';b.onclick=()=>setWeather(k);el.appendChild(b)}}
+renderWeather();
 const tempo=()=>clamp(1+(S.settings.temp-22)*.045,.6,1.45);
 
 class Voice{
@@ -260,7 +295,7 @@ class Voice{
   schedule(h){
     const now=ac.currentTime;if(this.nextT<now)this.nextT=now+.05;
     while(this.nextT<h){
-      if(this.muted||now<this.silentUntil){this.nextT=Math.max(this.nextT+.3,this.silentUntil);continue}
+      if(this.muted||now<this.silentUntil||(this.rainy&&S.settings.weather==='heavy')){this.nextT=Math.max(this.nextT+.3,this.silentUntil);continue}
       this.nextT+=Math.max(.2,this.sp.phrase(this,this.nextT,this.k()));
     }
     this.lfo.frequency.setTargetAtTime(this.sp.am[0]*Math.sqrt(this.k()),now,.3);
@@ -386,7 +421,7 @@ function applyPos(b){const v=G.voices.get(b.id);if(!v||!ac)return;const now=ac.c
 function syncGarden(){ // 庭にいる虫と声を一致させる
   if(!ac)return;const ids=new Set(inGarden().map(b=>b.id));
   for(const[id,v]of G.voices)if(!ids.has(id)){v.stop();G.voices.delete(id)}
-  for(const b of inGarden())if(!G.voices.has(b.id)){const v=new Voice(b.sp,b,gardenBus);G.voices.set(b.id,v);if(b.mute)v.setMuted(true);applyPos(b)}}
+  for(const b of inGarden())if(!G.voices.has(b.id)){const v=new Voice(b.sp,b,gardenBus);v.rainy=true;G.voices.set(b.id,v);if(b.mute)v.setMuted(true);applyPos(b)}}
 function stopGarden(){for(const v of G.voices.values())v.stop();G.voices.clear()}
 function gLocal(e){const r=gc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 const gTop=()=>G.H*.22;
@@ -399,8 +434,9 @@ gc.addEventListener('pointerup',()=>{const d=G.drag;G.drag=null;if(!d)return;if(
 function drawGarden(now){
   const{c,W,H}=fitCanvas(gc);G.W=W;G.H=H;const top=gTop();
   let g=c.createLinearGradient(0,0,0,top);g.addColorStop(0,'#0a1230');g.addColorStop(1,'#18224a');c.fillStyle=g;c.fillRect(0,0,W,top);
-  const sr=seeded(3);c.fillStyle='rgba(255,255,240,.6)';for(let i=0;i<40;i++){const x=sr()*W,y=sr()*top*.9,tw=.5+.5*Math.sin(now/900+i);c.globalAlpha=tw*.7;c.fillRect(x,y,1.2,1.2)}c.globalAlpha=1;
-  c.fillStyle='#f4ecd0';c.beginPath();c.arc(W*.8,top*.42,14,0,7);c.fill();g=c.createRadialGradient(W*.8,top*.42,0,W*.8,top*.42,90);g.addColorStop(0,'rgba(244,236,208,.2)');g.addColorStop(1,'rgba(244,236,208,0)');c.fillStyle=g;c.fillRect(0,0,W,top*1.5);
+  const rl=ac?rainLvl:RAIN_T[S.settings.weather];
+  const sr=seeded(3);c.fillStyle='rgba(255,255,240,.6)';for(let i=0;i<40;i++){const x=sr()*W,y=sr()*top*.9,tw=.5+.5*Math.sin(now/900+i);c.globalAlpha=tw*.7*(1-rl);c.fillRect(x,y,1.2,1.2)}c.globalAlpha=1;
+  c.globalAlpha=1-rl*.92;c.fillStyle='#f4ecd0';c.beginPath();c.arc(W*.8,top*.42,14,0,7);c.fill();g=c.createRadialGradient(W*.8,top*.42,0,W*.8,top*.42,90);g.addColorStop(0,'rgba(244,236,208,.2)');g.addColorStop(1,'rgba(244,236,208,0)');c.fillStyle=g;c.fillRect(0,0,W,top*1.5);c.globalAlpha=1;
   c.fillStyle='#070b14';c.beginPath();c.moveTo(0,top);for(let x=0;x<=W;x+=20)c.lineTo(x,top-8-Math.sin(x*.013)*6-Math.sin(x*.041)*4);c.lineTo(W,top);c.fill();
   g=c.createLinearGradient(0,top,0,H);g.addColorStop(0,'#101a18');g.addColorStop(1,'#1b2a1f');c.fillStyle=g;c.fillRect(0,top,W,H-top);
   c.fillStyle='rgba(200,210,255,.18)';c.font='11px sans-serif';c.textAlign='center';c.fillText('奥（遠く・よく響く）',W/2,top+14);c.fillText('手前（近く・はっきり）',W/2,H-8);
@@ -416,7 +452,16 @@ function drawGarden(now){
     if(sing){const ph=(now/600)%1;c.strokeStyle=`rgba(240,201,106,${(1-ph)*.35})`;c.lineWidth=1;c.beginPath();c.arc(q.x,q.y,sp.len*s*.6+ph*16,0,7);c.stroke()}
     c.fillStyle=b.mute?'rgba(200,200,210,.35)':'rgba(230,230,220,.6)';c.font='10px sans-serif';c.textAlign='center';c.fillText(b.name+(b.mute?'（休）':''),q.x,q.y+sp.len*s*.5+12)}
   document.getElementById('gempty').style.display=bugs.length?'none':'flex';
-  document.getElementById('gstat').textContent=bugs.length?`庭の虫 ${bugs.length}／${GARDEN_MAX}`:'';
+  if(rl>.02){ // 雲・雨すじ・水はね
+    c.globalAlpha=1;c.fillStyle=`rgba(16,20,30,${rl*.45})`;c.fillRect(0,0,W,H);
+    const t=now/1000,n=Math.round(140*rl);c.strokeStyle=`rgba(175,190,215,${.18+.12*rl})`;c.lineWidth=1;c.beginPath();
+    for(let i=0;i<n;i++){const r1=(i*.6180339)%1,r2=(i*.7548776)%1,sp=520+r2*260,len=10+r2*10;
+      const y=((r2*H+t*sp)%(H+40))-20,x=((r1*W*1.2+y*.18)%(W+20))-10;c.moveTo(x,y);c.lineTo(x-len*.18,y-len)}c.stroke();
+    const m=Math.round(22*rl);for(let k=0;k<m;k++){const cyc=t*1.6+k*.37,cell=Math.floor(cyc),age=cyc-cell,hh=Math.sin(cell*12.9898+k*78.233)*43758.5453,r=hh-Math.floor(hh);
+      const x=r*W,y=top+((r*7.13)%1)*(H-top);c.strokeStyle=`rgba(190,205,225,${(1-age)*.35})`;c.beginPath();c.ellipse(x,y,2+age*9,(2+age*9)*.35,0,0,7);c.stroke()}}
+  c.globalAlpha=1;
+  const wx=S.settings.weather,since=ac?ac.currentTime-afterRainAt:1e9;
+  document.getElementById('gstat').textContent=!bugs.length?'':wx==='heavy'?'本降り — 虫たちは雨宿り中':afterRainAt&&since<45?'雨上がり… 虫がまた鳴きはじめます':`庭の虫 ${bugs.length}／${GARDEN_MAX}${wx==='light'?'　小雨':''}`;
 }
 function openBug(b){G.sel=b;const sp=SPECIES[b.sp];document.getElementById('bugT').textContent=b.name;
   document.getElementById('bugP').textContent=`${sp.name}（${sp.voice}）・${traits(b)}`;
@@ -471,12 +516,14 @@ let tab='';
 function show(t){if(t===tab)return;const prev=tab;tab=t;
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));
   if(!ac)return;
+  rainBus.gain.setTargetAtTime(t==='field'?0:1,ac.currentTime,.3);
   if(t==='field'){stopGarden();requestAnimationFrame(enterField)}
   else{if(prev==='field'||!prev)leaveField();syncGarden()}
   if(t==='zukan')renderZukan();if(t==='garden')renderBench()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
 function tick(){if(!ac||!playing)return;const h=ac.currentTime+.35;
+  rainTick();
   if(tab==='field')F.bugs.forEach(b=>b.voice.schedule(h));else G.voices.forEach(v=>v.schedule(h));
   if(timerEnd&&Date.now()>timerEnd){timerEnd=0;document.getElementById('timer').value='0';master.gain.setTargetAtTime(0,ac.currentTime,4);setTimeout(()=>{if(!timerEnd&&playing)togglePlay()},15000)}}
 let lastF=performance.now();
