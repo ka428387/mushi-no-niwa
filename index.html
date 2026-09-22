@@ -611,15 +611,24 @@ function togglePlay(){if(!ac)return;playing=!playing;if(playing){ac.resume();mas
 document.getElementById('playBtn').onclick=togglePlay;
 
 // ───────── 図鑑 ─────────
-let preview=null;
+let preview=null,previewBtn=null;
+// 図鑑の「声を聞く」：その虫の声だけが聞こえるよう、庭の虫・雨・風を小さくする
+function duck(on){const t=ac.currentTime,lv=on?.06:1;gardenBus.gain.setTargetAtTime(lv,t,.08);rainBus.gain.setTargetAtTime(on?.06:(tab==='field'?0:1),t,.08);windGain.gain.setTargetAtTime(S.settings.wind*.5*(on?.1:1),t,.08)}
+function endPreview(v){if(preview!==v)return;v.stop();preview=null;duck(false);
+  if(previewBtn){previewBtn.textContent='声を聞く';previewBtn.classList.remove('pri');previewBtn=null}
+  if(!playing){master.gain.setTargetAtTime(0,ac.currentTime,.2);setTimeout(()=>{if(!playing&&!preview)ac.suspend()},800)}}
+function playPreview(k,btn){if(!ac)return;if(preview)endPreview(preview);
+  if(!playing){ac.resume();master.gain.setTargetAtTime(S.settings.vol,ac.currentTime,.05)} // 一時停止中でも聞けるように
+  duck(true);const v=new Voice(k,{pitch:1,rate:1},previewBus);v.out.gain.value=1;v.send.gain.value=.3;preview=v;previewBtn=btn;btn.textContent='聞いています…';btn.classList.add('pri');
+  let t=ac.currentTime+.25;const until=t+4; // 短い声の虫は4秒ほどくり返す
+  do{v.nextT=t;t+=Math.max(.2,v.sp.phrase(v,t,tempo()))}while(t<until&&v.lastEnd<until-1.5);
+  setTimeout(()=>endPreview(v),(v.lastEnd-ac.currentTime)*1000+500)}
 function renderZukan(){const el=document.getElementById('zgrid');el.innerHTML='';let found=0;
   for(const k of SP_KEYS){const sp=SPECIES[k],n=S.seen[k]||0;if(n)found++;
     const cd=document.createElement('div');cd.className='card'+(n?'':' unk');const cv=document.createElement('canvas');cd.appendChild(cv);
     cd.insertAdjacentHTML('beforeend',n?`<div class="t">${sp.name}</div><div class="v">${sp.voice}</div><div class="d">${sp.desc}</div>`:`<div class="t">？？？</div><div class="v">？？？</div><div class="d">まだ出会っていない虫。${Object.keys(AREAS).filter(a=>AREAS[a].w[k]).map(a=>AREAS[a].name).join('、')}で声がするらしい。</div>`);
     const f=document.createElement('div');f.className='f';f.innerHTML=`<span>つかまえた数 ${n}</span>`;
-    if(n){const b=document.createElement('button');b.className='btn';b.textContent='声を聞く';b.onclick=()=>{if(!ac)return;if(preview)preview.stop();
-      const v=new Voice(k,{pitch:1,rate:1},previewBus);v.out.gain.value=1;v.send.gain.value=.3;v.nextT=ac.currentTime+.05;const end=ac.currentTime+.05+v.sp.phrase(v,ac.currentTime+.05,tempo());preview=v;
-      setTimeout(()=>{if(preview===v){v.stop();preview=null}},(end-ac.currentTime)*1000+300)};f.appendChild(b)}
+    if(n){const b=document.createElement('button');b.className='btn';b.textContent='声を聞く';b.onclick=()=>playPreview(k,b);f.appendChild(b)}
     cd.appendChild(f);el.appendChild(cd);
     requestAnimationFrame(()=>{if(n)thumb(cv,k,0);else{const{c,W,H}=fitCanvas(cv);c.clearRect(0,0,W,H);const s=Math.min(W,H*1.6)/(sp.len*2.6);c.filter='brightness(0)';drawBug(c,{...sp,color:'#060810',wing:'#060810'},W/2,H/2,s,.9,0);c.filter='none'}})}
   document.getElementById('zukanStat').textContent=`見つけた種類 ${found}／${SP_KEYS.length}　・　つかまえた虫 ${S.bugs.length}匹（庭 ${inGarden().length}）`}
