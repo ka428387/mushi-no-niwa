@@ -67,6 +67,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 .btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px}
 .btn.pri{border-color:var(--accent);color:var(--accent)}
 .btn.warn{color:var(--danger)}
+.gclear{display:flex;justify-content:flex-end;margin:-4px 0 0}
 .btn:disabled{opacity:.4;cursor:default}
 .zukan{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
@@ -125,7 +126,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 
   <section id="garden">
     <div class="stage" id="gstage"><canvas id="gc"></canvas><div class="stat" id="gstat"></div><div class="empty" id="gempty">まだ庭に虫がいません。<br>「探す」で虫をつかまえてきましょう。</div></div>
-    <p class="hint">虫をドラッグして置き場所を変えられます。<b>左右</b>で聞こえる方向が、<b>奥／手前</b>で遠さと響きが変わります。同じ種類の虫を近くに置くと、<b>交互に鳴き交わします</b>。虫をタップすると詳しく見られます。</p>
+    <p class="hint">虫をドラッグして置き場所を変えられます。<b>左右</b>で聞こえる方向が、<b>奥／手前</b>で遠さと響きが変わります。同じ種類の虫を近くに置くと、<b>交互に鳴き交わします</b>。ドラッグ中に<b>中央下の虫かご</b>へ運ぶと、控えに移せます。虫をタップすると詳しく見られます。</p>
     <div class="ctrls">
       <div class="wx">天気<div class="chips" id="weather"></div><div style="font-size:11.5px">小雨にすると、虫の声に雨音が重なります。</div></div>
       <label>気温<b id="tempL"></b><input type="range" id="temp" min="14" max="30" step="1"></label>
@@ -137,6 +138,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
       <label>おやすみタイマー<select id="timer"><option value="0">なし</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option><option value="90">90分</option></select></label>
       <label>&nbsp;<b id="timerL" style="margin:0"></b></label>
     </div>
+    <div class="gclear"><button class="btn" id="clearGarden">庭の虫をぜんぶ控えへ</button></div>
     <h2 id="benchH">控えの虫かご</h2>
     <div class="list" id="bench"></div>
   </section>
@@ -551,15 +553,29 @@ function toPx(b){return{x:24+b.x*(G.W-48),y:gTop()+b.y*(G.H-gTop()-24)}}
 function fromPx(x,y){return{x:clamp((x-24)/(G.W-48),0,1),y:clamp((y-gTop())/(G.H-gTop()-24),0,1)}}
 gc.addEventListener('pointerdown',e=>{const p=gLocal(e);let hit=null,hd=1e9;for(const b of inGarden()){const q=toPx(b),d=Math.hypot(q.x-p.x,q.y-p.y);if(d<Math.max(26,SPECIES[b.sp].len)&&d<hd){hd=d;hit=b}}
   if(hit){G.drag={b:hit,sx:p.x,sy:p.y,moved:false};gc.setPointerCapture(e.pointerId)}});
-gc.addEventListener('pointermove',e=>{if(!G.drag)return;const p=gLocal(e);if(Math.hypot(p.x-G.drag.sx,p.y-G.drag.sy)>6)G.drag.moved=true;if(G.drag.moved){Object.assign(G.drag.b,fromPx(p.x,p.y));applyPos(G.drag.b)}});
-gc.addEventListener('pointerup',()=>{const d=G.drag;G.drag=null;if(!d)return;if(d.moved)save();else openBug(d.b)});
+gc.addEventListener('pointermove',e=>{if(!G.drag)return;const p=gLocal(e);if(Math.hypot(p.x-G.drag.sx,p.y-G.drag.sy)>6)G.drag.moved=true;G.drag.px=p.x;G.drag.py=p.y;if(G.drag.moved){Object.assign(G.drag.b,fromPx(p.x,p.y));applyPos(G.drag.b)}});
+gc.addEventListener('pointerup',()=>{const d=G.drag;G.drag=null;if(!d)return;
+  if(d.moved&&overCage(d)){d.b.garden=false;save();syncGarden();renderBench();toast(`${d.b.name}を控えの虫かごへ`);return}
+  if(d.moved)save();else openBug(d.b)});
+gc.addEventListener('pointercancel',()=>{G.drag=null});
+// ドラッグ中だけ中央下に出る「控えの虫かご」
+const cagePos=()=>({x:G.W/2,y:G.H-46});
+function overCage(d){if(d.px==null)return false;const c=cagePos();return Math.hypot(d.px-c.x,d.py-c.y)<46}
+function drawCage(c){const d=G.drag;if(!d||!d.moved)return;const p=cagePos(),on=overCage(d),r=on?34:28;
+  c.save();c.fillStyle=on?'rgba(220,166,64,.9)':'rgba(6,31,37,.72)';c.strokeStyle=on?'#f7edcf':'rgba(247,237,207,.6)';c.lineWidth=1.5;
+  c.beginPath();c.arc(p.x,p.y,r,0,7);c.fill();c.stroke();
+  const w=r*.9,h=r*.7,x0=p.x-w/2,y0=p.y-h/2+2;c.strokeStyle=on?'#061f25':'#f7edcf';c.lineWidth=1.4;c.beginPath();
+  c.moveTo(x0,y0);c.lineTo(x0+w,y0);c.lineTo(x0+w,y0+h);c.lineTo(x0,y0+h);c.closePath();
+  for(let i=1;i<5;i++){c.moveTo(x0+w*i/5,y0);c.lineTo(x0+w*i/5,y0+h)}
+  c.moveTo(p.x-w*.25,y0);c.quadraticCurveTo(p.x,y0-h*.45,p.x+w*.25,y0);c.stroke();
+  c.fillStyle='rgba(247,237,207,.85)';c.font='11px sans-serif';c.textAlign='center';c.fillText(on?'はなすと控えへ':'控えの虫かご',p.x,p.y-r-8);c.restore()}
 function drawGarden(now){
   const{c,W,H}=fitCanvas(gc);G.W=W;G.H=H;const top=gTop();
   c.clearRect(0,0,W,H);
   const rl=ac?rainLvl:RAIN_T[S.settings.weather];
   if(GARDEN_ART.complete&&GARDEN_ART.naturalWidth){ // 庭の絵（CSS背景と同じ位置）に今夜の月を重ねる
     const rect=coverRect(GARDEN_ART,W,H,innerWidth<=480?.65:.5,.5);c.drawImage(GARDEN_ART,rect.x,rect.y,rect.w,rect.h);drawArtMoon(c,GARDEN_ART,rect,ART_MOON.garden,moonInfo(),rl*.92)}
-  c.fillStyle='rgba(242,237,223,.62)';c.font='11px sans-serif';c.textAlign='center';c.fillText('奥（遠く・よく響く）',W/2,top+14);c.fillText('手前（近く・はっきり）',W/2,H-8);
+  c.fillStyle='rgba(242,237,223,.62)';c.font='11px sans-serif';c.textAlign='center';c.fillText('奥（遠く・よく響く）',W/2,top+14);if(!(G.drag&&G.drag.moved))c.fillText('手前（近く・はっきり）',W/2,H-8);
   c.textAlign='left';c.fillText('左',8,(top+H)/2);c.textAlign='right';c.fillText('右',W-8,(top+H)/2);
   const at=ac?ac.currentTime:0;const bugs=inGarden().slice().sort((a,b)=>a.y-b.y);
   // 掛け合っている仲間を点線でつなぐ
@@ -581,6 +597,7 @@ function drawGarden(now){
     const m=Math.round(22*rl);for(let k=0;k<m;k++){const cyc=t*1.6+k*.37,cell=Math.floor(cyc),age=cyc-cell,hh=Math.sin(cell*12.9898+k*78.233)*43758.5453,r=hh-Math.floor(hh);
       const x=r*W,y=top+((r*7.13)%1)*(H-top);c.strokeStyle=`rgba(190,205,225,${(1-age)*.35})`;c.beginPath();c.ellipse(x,y,2+age*9,(2+age*9)*.35,0,0,7);c.stroke()}}
   c.globalAlpha=1;
+  drawCage(c);
   document.getElementById('gstat').textContent=bugs.length?`庭の虫 ${bugs.length}／${GARDEN_MAX}${S.settings.weather==='light'?'　小雨':''}`:'';
 }
 function openBug(b){G.sel=b;const sp=SPECIES[b.sp];document.getElementById('renameRow').classList.remove('on');{const f=document.getElementById('bugFree');clearTimeout(f._t);f.classList.remove('armed');f.textContent='逃がす'}document.getElementById('bugT').textContent=b.name;
@@ -598,6 +615,8 @@ document.getElementById('bugBench').onclick=()=>{G.sel.garden=false;save();syncG
 function armButton(btn,label,act){if(btn.classList.contains('armed')){act();return}
   btn.classList.add('armed');const orig=btn.textContent;btn.textContent=label;
   clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.classList.remove('armed');btn.textContent=orig},4000)}
+document.getElementById('clearGarden').onclick=e=>{if(!inGarden().length){toast('庭に虫がいません');return}
+  armButton(e.currentTarget,'もう一度押すと、庭の虫をぜんぶ控えへ',()=>{const n=inGarden().length;inGarden().forEach(b=>b.garden=false);save();syncGarden();renderBench();toast(`${n}匹を控えの虫かごへ移しました`)})};
 function release(b){S.bugs=S.bugs.filter(x=>x!==b);save();syncGarden();renderBench();toast(`${b.name}を野に逃がしました`)}
 let toastT;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2500)}
 document.getElementById('bugFree').onclick=e=>armButton(e.currentTarget,'もう一度押すと逃がします',()=>{release(G.sel);closeBug()});
