@@ -474,9 +474,11 @@ function swing(x,y){if(F.net)return;F.net={x,y,t:performance.now()};sfx('swish')
   for(const b of F.bugs){const d=Math.hypot(b.x-x,b.y-y);if(d<110){const a=Math.random()*6.28,r=rr(120,220);b.x=clamp(b.x+Math.cos(a)*r,30,F.W-30);b.y=clamp(b.y+Math.sin(a)*r,fieldGroundY(),F.H-30);b.voice.hush(rr(3,6))}
     else if(d<170)b.voice.hush(rr(1.5,3))}}
 let lastCaught=null;
+// 名前の番号は、今いる同じ種類の虫で使われていない一番小さい番号（全部逃がせばまた1号から）
+function nextName(sp){const base=SPECIES[sp].name,used=new Set(S.bugs.map(b=>b.name));let i=1;while(used.has(base+i+'号'))i++;return base+i+'号'}
 function caught(fb){const i=F.bugs.indexOf(fb);if(i<0)return;F.bugs.splice(i,1);fb.voice.stop();sfx('catch');F.respawn.push(performance.now()+rr(6000,12000));
   const n=(S.seen[fb.sp]||0)+1;S.seen[fb.sp]=n;
-  const bug={id:S.nextId++,sp:fb.sp,pitch:fb.ind.pitch,rate:fb.ind.rate,name:SPECIES[fb.sp].name+n+'号',garden:inGarden().length<GARDEN_MAX,...freeSpot(),mute:false};
+  const bug={id:S.nextId++,sp:fb.sp,pitch:fb.ind.pitch,rate:fb.ind.rate,name:nextName(fb.sp),garden:inGarden().length<GARDEN_MAX,...freeSpot(),mute:false};
   S.bugs.push(bug);save();lastCaught=bug;
   document.getElementById('catchT').textContent=(n===1?'はじめての ':'')+SPECIES[fb.sp].name+'をつかまえた！';
   document.getElementById('catchP').textContent=`「${bug.name}」 ${traits(bug)}。`+(bug.garden?'庭に放しました。':'庭がいっぱいなので控えの虫かごに入れました。');
@@ -618,8 +620,8 @@ function armButton(btn,label,act){if(btn.classList.contains('armed')){act();retu
 document.getElementById('clearGarden').onclick=e=>{if(!inGarden().length){toast('庭に虫がいません');return}
   armButton(e.currentTarget,'もう一度押すと、庭の虫をぜんぶ控えへ',()=>{const n=inGarden().length;inGarden().forEach(b=>b.garden=false);save();syncGarden();renderBench();toast(`${n}匹を控えの虫かごへ移しました`)})};
 document.getElementById('freeAll').onclick=e=>{const n=S.bugs.length;if(!n){toast('逃がす虫がいません');return}
-  armButton(e.currentTarget,`もう一度押すと${n}匹を逃がします`,()=>{S.bugs=[];save();syncGarden();renderBench();toast(`${n}匹を野に逃しました。ばいばい！`)})};
-function release(b){S.bugs=S.bugs.filter(x=>x!==b);save();syncGarden();renderBench();toast(`${b.name}を野に逃がしました`)}
+  armButton(e.currentTarget,`もう一度押すと${n}匹を逃がします`,()=>{S.bugs=[];save();syncGarden();renderBench();toast(`${n}匹を野に逃がしました。バイバイ！`)})};
+function release(b){S.bugs=S.bugs.filter(x=>x!==b);save();syncGarden();renderBench();toast(`${b.name}を野に逃がしました。バイバイ！`)}
 let toastT;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2500)}
 document.getElementById('bugFree').onclick=e=>armButton(e.currentTarget,'もう一度押すと逃がします',()=>{release(G.sel);closeBug()});
 function renderBench(){const el=document.getElementById('bench');const list=S.bugs.filter(b=>!b.garden);el.innerHTML='';
