@@ -247,13 +247,13 @@ for(const key of SP_KEYS){
 }
 
 const AREAS={
-  kusamura:{name:'秋の野原',art:'autumn-meadow-aligned.jpg',horizon:.38,grass:1,sky:['#2b1c34','#493047'],ground:['#747844','#4a4f2c'],blade:['#2f3a25','#7e7a43','#d18a2e'],n:7,
+  kusamura:{name:'秋の野原',art:'autumn-meadow-v2.jpg',horizon:.38,grass:1,sky:['#2b1c34','#493047'],ground:['#747844','#4a4f2c'],blade:['#2f3a25','#7e7a43','#d18a2e'],n:7,
     w:{emma:5,suzumushi:4,tsuzure:3,kanetataki:2,matsumushi:1,kumasuzu:1,kusahibari:1}},
-  kawara:{name:'河原のススキ原',art:'river-susuki-aligned.jpg',horizon:.56,grass:.55,sky:['#032449','#074a73'],ground:['#15577a','#073d5f'],blade:['#6aaab4','#d9bf76','#3f8794'],n:7,susuki:true,
+  kawara:{name:'河原のススキ原',art:'river-susuki-v2.jpg',horizon:.56,grass:.55,sky:['#032449','#074a73'],ground:['#15577a','#073d5f'],blade:['#6aaab4','#d9bf76','#3f8794'],n:7,susuki:true,
     w:{matsumushi:4,emma:3,kutsuwa:2,kirigirisu:2,kayakiri:2,suzumushi:1,kusahibari:1}},
-  hayashi:{name:'雑木林のへり',art:'woodland-edge-aligned.jpg',horizon:.5,grass:.4,sky:['#061c16','#123728'],ground:['#48613a','#1f3a27'],blade:['#31583c','#788b55','#d76c2d'],n:6,trees:true,
+  hayashi:{name:'雑木林のへり',art:'woodland-edge-v2.jpg',horizon:.5,grass:.4,sky:['#061c16','#123728'],ground:['#48613a','#1f3a27'],blade:['#31583c','#788b55','#d76c2d'],n:6,trees:true,
     w:{kantan:4,umaoi:3,kanetataki:3,kutsuwa:2,tsuyumushi:2,kumasuzu:1,kusahibari:1}},
-  kouen:{name:'街の公園',art:'city-park-aligned.jpg',horizon:.47,grass:.12,sky:['#2a1e3d','#4d3763'],ground:['#819177','#4a615a'],blade:['#627a72','#93a388','#f27f69'],n:7,trees:true,
+  kouen:{name:'街の公園',art:'city-park-v2.jpg',horizon:.47,grass:.12,sky:['#2a1e3d','#4d3763'],ground:['#819177','#4a615a'],blade:['#627a72','#93a388','#f27f69'],n:7,trees:true,
     w:{aomatsu:5,tsuzure:4,emma:3,kanetataki:2,tsuyumushi:1,kumasuzu:1}},
 };
 const GARDEN_ART=new Image();GARDEN_ART.src='assets/garden.jpg';
@@ -352,10 +352,10 @@ function drawMoon(c,x,y,r,m,alpha=1){c.save();c.globalAlpha=alpha;
 // Codexの絵に描かれた満月の位置（画像に対する割合）と、まわりの色
 const ART_MOON={
   garden:{x:.7081,y:.1026,r:.0421,rim:'#44525a',sky:'#082c44'},
-  kusamura:{x:.7096,y:.1194,r:.0398,rim:'#664c4f',sky:'#3a243a'},
-  kawara:{x:.7097,y:.1196,r:.0398,rim:'#2c608c',sky:'#032751'},
-  hayashi:{x:.7096,y:.1195,r:.0398,rim:'#364936',sky:'#0d2a21'},
-  kouen:{x:.7096,y:.1194,r:.0399,rim:'#685470',sky:'#3b2b53'},
+  kusamura:{x:.7077,y:.1022,r:.0419,rim:'#664c50',sky:'#3a2439'},
+  kawara:{x:.7078,y:.1022,r:.0419,rim:'#2d608b',sky:'#032751'},
+  hayashi:{x:.7077,y:.1021,r:.0419,rim:'#374936',sky:'#0d2a22'},
+  kouen:{x:.7077,y:.1022,r:.0419,rim:'#685470',sky:'#3b2b53'},
 };
 const hexRgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
 const rgba=(h,a)=>`rgba(${hexRgb(h).join(',')},${a})`;
@@ -454,8 +454,9 @@ function spawnBug(){const m=40;let x,y,tries=0;do{x=rr(m,F.W-m);y=rr(fieldGround
 // 虫を置ける一番上の高さ：絵の地平線（草地が始まる高さ）を、画面での絵の表示位置に合わせて換算する
 const GARDEN_GROUND=.4;
 for(const k in AREA_ART)AREA_ART[k].addEventListener('load',()=>{if(F.active&&S.area===k){buildBlades();F.bugs.forEach(b=>{b.y=clamp(b.y,fieldGroundY(),F.H-30)})}});
+const artPosX=()=>innerWidth<=480?.65:.5; // スマホでは絵の右寄り（月のある側）を見せる。庭・探す画面・CSS背景で共通
 function artGroundY(img,frac,W,H,px=.5){if(img&&img.complete&&img.naturalWidth){const r=coverRect(img,W,H,px,.5);return r.y+frac*r.h}return frac*H}
-function fieldGroundY(){return clamp(artGroundY(AREA_ART[S.area],AREAS[S.area].horizon,F.W,F.H),20,F.H-90)}
+function fieldGroundY(){return clamp(artGroundY(AREA_ART[S.area],AREAS[S.area].horizon,F.W,F.H,artPosX()),20,F.H-90)}
 function buildBlades(){const A=AREAS[S.area],rnd=seeded(S.area.length*977+13);F.blades=[];const n=Math.round(F.W*F.H/3900*A.grass);
   const gy=fieldGroundY();for(let i=0;i<n;i++){const y=gy+rnd()*(F.H*1.03-gy);F.blades.push({x:rnd()*F.W,y,h:(16+rnd()*38)*(.6+y/F.H),lean:(rnd()-.5)*.72,ph:rnd()*6.28,col:A.blade[Math.floor(rnd()*A.blade.length)],plume:A.susuki&&rnd()<.2})}
   F.blades.sort((a,b)=>a.y-b.y);
@@ -498,7 +499,7 @@ function drawField(now,dt){
   // 場所ごとの切り絵背景。読み込み前だけ従来の色面を表示する。
   let g;const bg=AREA_ART[S.area],moon=moonInfo(),vis=85+50*moon.illum;
   if(bg&&bg.complete&&bg.naturalWidth){
-    const rect=coverRect(bg,W,H);c.drawImage(bg,rect.x,rect.y,rect.w,rect.h);drawArtMoon(c,bg,rect,ART_MOON[S.area],moon);
+    const rect=coverRect(bg,W,H,artPosX());c.drawImage(bg,rect.x,rect.y,rect.w,rect.h);drawArtMoon(c,bg,rect,ART_MOON[S.area],moon);
   }else{
     c.fillStyle=A.sky[0];c.fillRect(0,0,W,H*.3);
     c.fillStyle=A.sky[1];c.beginPath();c.moveTo(0,H*.25);c.quadraticCurveTo(W*.48,H*.18,W,H*.26);c.lineTo(W,H*.31);c.lineTo(0,H*.31);c.closePath();c.fill();
@@ -552,7 +553,7 @@ function syncGarden(){ // 庭にいる虫と声を一致させる
   for(const b of inGarden())if(!G.voices.has(b.id)){const v=new Voice(b.sp,b,gardenBus);v.partners=()=>partnersOf(b);G.voices.set(b.id,v);if(b.mute)v.setMuted(true);applyPos(b)}}
 function stopGarden(){for(const v of G.voices.values())v.stop();G.voices.clear()}
 function gLocal(e){const r=gc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-const gTop=()=>clamp(artGroundY(GARDEN_ART,GARDEN_GROUND,G.W,G.H,innerWidth<=480?.65:.5),16,G.H*.6);
+const gTop=()=>clamp(artGroundY(GARDEN_ART,GARDEN_GROUND,G.W,G.H,artPosX()),16,G.H*.6);
 function toPx(b){return{x:24+b.x*(G.W-48),y:gTop()+b.y*(G.H-gTop()-24)}}
 function fromPx(x,y){return{x:clamp((x-24)/(G.W-48),0,1),y:clamp((y-gTop())/(G.H-gTop()-24),0,1)}}
 gc.addEventListener('pointerdown',e=>{const p=gLocal(e);let hit=null,hd=1e9;for(const b of inGarden()){const q=toPx(b),d=Math.hypot(q.x-p.x,q.y-p.y);if(d<Math.max(26,SPECIES[b.sp].len)&&d<hd){hd=d;hit=b}}
@@ -578,7 +579,7 @@ function drawGarden(now){
   c.clearRect(0,0,W,H);
   const rl=ac?rainLvl:RAIN_T[S.settings.weather];
   if(GARDEN_ART.complete&&GARDEN_ART.naturalWidth){ // 庭の絵（CSS背景と同じ位置）に今夜の月を重ねる
-    const rect=coverRect(GARDEN_ART,W,H,innerWidth<=480?.65:.5,.5);c.drawImage(GARDEN_ART,rect.x,rect.y,rect.w,rect.h);drawArtMoon(c,GARDEN_ART,rect,ART_MOON.garden,moonInfo(),rl*.92)}
+    const rect=coverRect(GARDEN_ART,W,H,artPosX(),.5);c.drawImage(GARDEN_ART,rect.x,rect.y,rect.w,rect.h);drawArtMoon(c,GARDEN_ART,rect,ART_MOON.garden,moonInfo(),rl*.92)}
   c.fillStyle='rgba(242,237,223,.62)';c.font='11px sans-serif';c.textAlign='center';c.fillText('奥（遠く・よく響く）',W/2,top+14);if(!(G.drag&&G.drag.moved))c.fillText('手前（近く・はっきり）',W/2,H-8);
   c.textAlign='left';c.fillText('左',8,(top+H)/2);c.textAlign='right';c.fillText('右',W-8,(top+H)/2);
   const at=ac?ac.currentTime:0;const bugs=inGarden().slice().sort((a,b)=>a.y-b.y);
@@ -719,8 +720,8 @@ if(SELFTEST)addEventListener('load',async()=>{
     S.area='kusamura';renderAreas();enterField();return true});
   await check('探す：つかまえると庭に入り、1号から名前がつく',async()=>{await wait(200);const b=F.bugs[0];caught(b);document.getElementById('catchMore').click();
     const g=S.bugs[0];return (S.bugs.length===1&&g.garden&&/1号$/.test(g.name))||JSON.stringify(S.bugs.map(x=>x.name))});
-  await check('月：今夜の月の名前が出て、4場所の月の位置がそろっている',()=>{const m=moonInfo();if(!m.name)return '名前なし';
-    const ms=Object.keys(AREAS).map(k=>ART_MOON[k]),spread=f=>Math.max(...ms.map(f))-Math.min(...ms.map(f));
+  await check('月：今夜の月の名前が出て、庭と4場所の月の位置がそろっている',()=>{const m=moonInfo();if(!m.name)return '名前なし';
+    const ms=[...Object.keys(AREAS),'garden'].map(k=>ART_MOON[k]),spread=f=>Math.max(...ms.map(f))-Math.min(...ms.map(f));
     return (spread(m=>m.x)<.003&&spread(m=>m.y)<.003&&spread(m=>m.r)<.002)||'位置が不ぞろい: '+ms.map(m=>m.x+','+m.y+' r'+m.r).join(' / ')});
   await check('庭：近くに置いた同じ種類の2匹が交互に鳴く',async()=>{
     S.bugs=[{id:901,sp:'suzumushi',pitch:1,rate:1,name:'テストA',garden:true,x:.45,y:.6,mute:false},{id:902,sp:'suzumushi',pitch:1.02,rate:.97,name:'テストB',garden:true,x:.55,y:.62,mute:false}];

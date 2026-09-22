@@ -1,16 +1,16 @@
 /* 虫の音の庭 Service Worker
    静的ファイルだけの構成なので、初回に全部キャッシュしてオフラインで動くようにする。
    取り出しは cache-first、裏で取り直して次回起動時に新しくなる（stale-while-revalidate）。 */
-const CACHE = 'mushi-no-niwa-v22';
+const CACHE = 'mushi-no-niwa-v23';
 
 const ASSETS = [
   './',
   './index.html',
   './assets/garden.jpg',
-  './assets/fields/autumn-meadow-aligned.jpg',
-  './assets/fields/river-susuki-aligned.jpg',
-  './assets/fields/woodland-edge-aligned.jpg',
-  './assets/fields/city-park-aligned.jpg',
+  './assets/fields/autumn-meadow-v2.jpg',
+  './assets/fields/river-susuki-v2.jpg',
+  './assets/fields/woodland-edge-v2.jpg',
+  './assets/fields/city-park-v2.jpg',
   './assets/insects/aomatsu.png',
   './assets/insects/emma.png',
   './assets/insects/kanetataki.png',
