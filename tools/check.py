@@ -35,6 +35,8 @@ def check_syntax(root):
     targets = []
     for i, js in enumerate(scripts):
         p = os.path.join(tmp, f'index-script{i+1}.js'); open(p, 'w', encoding='utf-8').write(js); targets.append(('index.html', p))
+    for f in sorted(os.listdir(os.path.join(root, 'js'))) if os.path.isdir(os.path.join(root, 'js')) else []:
+        if f.endswith('.js'): targets.append((f'js/{f}', os.path.join(root, 'js', f)))
     targets.append(('sw.js', os.path.join(root, 'sw.js')))
     for label, p in targets:
         r = subprocess.run([JSC, '-e', f'checkSyntax({json.dumps(p)})'], capture_output=True, text=True)
@@ -44,27 +46,64 @@ def check_syntax(root):
         else:
             ok(f'構文OK：{label}（iPhoneのSafariと同じJavaScriptCoreで確認）')
     shutil.rmtree(tmp, ignore_errors=True)
+    # ファイルの中身の点検には、index.html と js/*.js・css/*.css をまとめて使う
+    for d in ('js', 'css'):
+        dd = os.path.join(root, d)
+        if os.path.isdir(dd):
+            for f in sorted(os.listdir(dd)):
+                if f.endswith(('.js', '.css')): html += '\n' + open(os.path.join(dd, f), encoding='utf-8').read()
     return html
 
 def check_files(root, html):
     need = set()
+    src_html = open(os.path.join(root, 'index.html'), encoding='utf-8').read()
     sw = open(os.path.join(root, 'sw.js'), encoding='utf-8').read()
     need |= {p[2:] for p in re.findall(r"'(\./[^']+)'", sw) if p not in ('./',)}
     man = json.load(open(os.path.join(root, 'manifest.webmanifest'), encoding='utf-8'))
     need |= {i['src'] for i in man.get('icons', [])}
-    need |= set(re.findall(r'''(?:src|href)=["']((?:assets|icons)/[^"']+)["']''', html))
-    need |= set(re.findall(r"url\('((?:assets|icons)/[^']+)'\)", html))
+    need |= set(re.findall(r'''(?:src|href)=["']((?:assets|icons|js|css)/[^"']+)["']''', html))
+    need |= set(re.findall(r"url\('((?:assets|icons)/[^']+)'\)", src_html))
     need |= set(re.findall(r"'(assets/[^'$`]+\.(?:png|jpg|svg))'", html))
     need |= {f'assets/fields/{a}' for a in re.findall(r"art:'([^']+)'", html)}
     need |= {f'assets/insects/{k}.png' for k in re.findall(r"^  (\w+):\{name:'[^']*',voice:", html, re.M)}
+    # CSS の中の画像は、CSS ファイルの場所から数える（css/ に置いたなら ../assets/…）
+    cssdir = os.path.join(root, 'css')
+    for f in (sorted(os.listdir(cssdir)) if os.path.isdir(cssdir) else []):
+        if not f.endswith('.css'): continue
+        for u in re.findall(r"url\(['\"]?([^'\")]+)['\"]?\)", open(os.path.join(cssdir, f), encoding='utf-8').read()):
+            if u.startswith(('data:', 'http')): continue
+            rel = os.path.relpath(os.path.normpath(os.path.join(cssdir, u)), root)
+            need.add(rel)
     missing = sorted(p for p in need if not os.path.exists(os.path.join(root, p)))
     if missing: ng('読み込むファイルが見つからない', ', '.join(missing))
     else: ok(f'読み込むファイルがすべてそろっている（{len(need)}個）')
     # オフライン用の一覧（sw.js）に、アプリが読む画像が入っているか
     listed = {p[2:] for p in re.findall(r"'(\./[^']+)'", sw)}
-    unlisted = sorted(p for p in need if p.startswith('assets/') and p not in listed)
-    if unlisted: ng('オフライン用の一覧（sw.js）に入っていない画像がある', ', '.join(unlisted))
-    else: ok('オフライン用の一覧（sw.js）に画像がすべて入っている')
+    unlisted = sorted(p for p in need if p.startswith(('assets/', 'js/', 'css/')) and p not in listed and p != 'js/selftest.js')
+    if unlisted: ng('オフライン用の一覧（sw.js）に入っていないファイルがある', ', '.join(unlisted))
+    else: ok('オフライン用の一覧（sw.js）に画像・CSS・JSがすべて入っている')
+
+# 見た目のファイル（Codex 担当）が、システム（Claude Code 担当）の中身に手を出していないか
+ART_FORBIDDEN = [
+    (r'\blocalStorage\b|(?<![\w.])save\(', '保存データ'),
+    (r'\bac\b|AudioContext|\bnew Voice\b|\.voice\b|Bus\b', '音'),
+    (r'(?<![\w.])[SFG]\.\w', 'アプリの状態（S・F・G）'),
+    (r'\bSPECIES\b|\bAREAS\b', '虫・場所のシステム側のデータ（見た目は SPECIES_LOOK・AREA_LOOK を使う）'),
+    (r"\b(?:ART_MOON|HORIZON|GARDEN_GROUND)\b[\w.\[\]'\"]*\s*=(?!=)", 'つなぎ目の値の書き換え（art-fit.js は Claude Code が測って入れる）'),
+]
+def check_boundary(root):
+    p = os.path.join(root, 'js', 'art.js')
+    if not os.path.exists(p): return
+    code = re.sub(r'/\*.*?\*/', '', open(p, encoding='utf-8').read(), flags=re.S)
+    code = re.sub(r'//[^\n]*', '', code)
+    code = re.sub(r"'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`", "''", code)
+    bad = []
+    for pat, what in ART_FORBIDDEN:
+        for m in re.finditer(pat, code):
+            line = code.count('\n', 0, m.start()) + 1
+            bad.append(f'{what}（{line}行目「{m.group(0)}」）')
+    if bad: ng('見た目のファイル（js/art.js）が、システムの中身に手を出している', ' / '.join(bad[:6]))
+    else: ok('分担の境界：js/art.js は見た目だけ（保存・音・アプリの状態には触れていない）')
 
 def check_markers(root):
     bad = []
@@ -131,7 +170,7 @@ def main():
     label = a.commit or 'いまのフォルダ'
     print(f'\n■ Izayoi 公開前チェック（{label}）\n\n1段目：ファイルの点検')
     html = check_syntax(root)
-    check_files(root, html); check_markers(root); check_cache_bump(root, base, a.commit)
+    check_files(root, html); check_boundary(root); check_markers(root); check_cache_bump(root, base, a.commit)
     if not a.quick:
         if any(f.startswith('構文エラー') for f in failures):
             print('\n2段目：構文エラーがあるので動作テストは省略')
