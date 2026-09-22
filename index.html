@@ -618,7 +618,7 @@ function armButton(btn,label,act){if(btn.classList.contains('armed')){act();retu
 document.getElementById('clearGarden').onclick=e=>{if(!inGarden().length){toast('庭に虫がいません');return}
   armButton(e.currentTarget,'もう一度押すと、庭の虫をぜんぶ控えへ',()=>{const n=inGarden().length;inGarden().forEach(b=>b.garden=false);save();syncGarden();renderBench();toast(`${n}匹を控えの虫かごへ移しました`)})};
 document.getElementById('freeAll').onclick=e=>{const n=S.bugs.length;if(!n){toast('逃がす虫がいません');return}
-  armButton(e.currentTarget,`もう一度押すと${n}匹を逃がします`,()=>{S.bugs=[];save();syncGarden();renderBench();toast(`${n}匹を野に逃がしました`)})};
+  armButton(e.currentTarget,`もう一度押すと${n}匹を逃がします`,()=>{S.bugs=[];save();syncGarden();renderBench();toast(`${n}匹を野に逃しました。ばいばい！`)})};
 function release(b){S.bugs=S.bugs.filter(x=>x!==b);save();syncGarden();renderBench();toast(`${b.name}を野に逃がしました`)}
 let toastT;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2500)}
 document.getElementById('bugFree').onclick=e=>armButton(e.currentTarget,'もう一度押すと逃がします',()=>{release(G.sel);closeBug()});
