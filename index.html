@@ -247,13 +247,13 @@ for(const key of SP_KEYS){
 }
 
 const AREAS={
-  kusamura:{name:'秋の野原',art:'autumn-meadow-color.jpg',grass:1,sky:['#2b1c34','#493047'],ground:['#747844','#4a4f2c'],blade:['#2f3a25','#7e7a43','#d18a2e'],n:7,
+  kusamura:{name:'秋の野原',art:'autumn-meadow-color.jpg',horizon:.38,grass:1,sky:['#2b1c34','#493047'],ground:['#747844','#4a4f2c'],blade:['#2f3a25','#7e7a43','#d18a2e'],n:7,
     w:{emma:5,suzumushi:4,tsuzure:3,kanetataki:2,matsumushi:1,kumasuzu:1,kusahibari:1}},
-  kawara:{name:'河原のススキ原',art:'river-susuki-color.jpg',grass:.55,sky:['#032449','#074a73'],ground:['#15577a','#073d5f'],blade:['#6aaab4','#d9bf76','#3f8794'],n:7,susuki:true,
+  kawara:{name:'河原のススキ原',art:'river-susuki-color.jpg',horizon:.56,grass:.55,sky:['#032449','#074a73'],ground:['#15577a','#073d5f'],blade:['#6aaab4','#d9bf76','#3f8794'],n:7,susuki:true,
     w:{matsumushi:4,emma:3,kutsuwa:2,kirigirisu:2,kayakiri:2,suzumushi:1,kusahibari:1}},
-  hayashi:{name:'雑木林のへり',art:'woodland-edge-color.jpg',grass:.4,sky:['#061c16','#123728'],ground:['#48613a','#1f3a27'],blade:['#31583c','#788b55','#d76c2d'],n:6,trees:true,
+  hayashi:{name:'雑木林のへり',art:'woodland-edge-color.jpg',horizon:.5,grass:.4,sky:['#061c16','#123728'],ground:['#48613a','#1f3a27'],blade:['#31583c','#788b55','#d76c2d'],n:6,trees:true,
     w:{kantan:4,umaoi:3,kanetataki:3,kutsuwa:2,tsuyumushi:2,kumasuzu:1,kusahibari:1}},
-  kouen:{name:'街の公園',art:'city-park-color.jpg',grass:.12,sky:['#2a1e3d','#4d3763'],ground:['#819177','#4a615a'],blade:['#627a72','#93a388','#f27f69'],n:7,trees:true,
+  kouen:{name:'街の公園',art:'city-park-color.jpg',horizon:.47,grass:.12,sky:['#2a1e3d','#4d3763'],ground:['#819177','#4a615a'],blade:['#627a72','#93a388','#f27f69'],n:7,trees:true,
     w:{aomatsu:5,tsuzure:4,emma:3,kanetataki:2,tsuyumushi:1,kumasuzu:1}},
 };
 const GARDEN_ART=new Image();GARDEN_ART.src='assets/garden.jpg';
@@ -444,11 +444,16 @@ function seeded(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/214
 const fc=document.getElementById('fc');
 const F={bugs:[],blades:[],lx:0,ly:0,tx:0,ty:0,speed:0,W:0,H:0,respawn:[],net:null,down:null,active:false};
 function pickSpecies(){const w=AREAS[S.area].w;let sum=0;for(const k in w)sum+=w[k];let r=Math.random()*sum;for(const k in w){r-=w[k];if(r<=0)return k}return Object.keys(w)[0]}
-function spawnBug(){const m=40;let x,y,tries=0;do{x=rr(m,F.W-m);y=rr(F.H*.3,F.H-m);tries++}while(tries<20&&(Math.hypot(x-F.lx,y-F.ly)<160||F.bugs.some(b=>Math.hypot(b.x-x,b.y-y)<70)));
+function spawnBug(){const m=40;let x,y,tries=0;do{x=rr(m,F.W-m);y=rr(fieldGroundY(),F.H-m);tries++}while(tries<20&&(Math.hypot(x-F.lx,y-F.ly)<160||F.bugs.some(b=>Math.hypot(b.x-x,b.y-y)<70)));
   const sp=pickSpecies();const ind={pitch:1+(Math.random()+Math.random()-1)*.04,rate:1+(Math.random()+Math.random()-1)*.08};
   F.bugs.push({sp,x,y,ind,voice:new Voice(sp,ind,fieldBus)})}
+// 虫を置ける一番上の高さ：絵の地平線（草地が始まる高さ）を、画面での絵の表示位置に合わせて換算する
+const GARDEN_GROUND=.4;
+for(const k in AREA_ART)AREA_ART[k].addEventListener('load',()=>{if(F.active&&S.area===k){buildBlades();F.bugs.forEach(b=>{b.y=clamp(b.y,fieldGroundY(),F.H-30)})}});
+function artGroundY(img,frac,W,H,px=.5){if(img&&img.complete&&img.naturalWidth){const r=coverRect(img,W,H,px,.5);return r.y+frac*r.h}return frac*H}
+function fieldGroundY(){return clamp(artGroundY(AREA_ART[S.area],AREAS[S.area].horizon,F.W,F.H),20,F.H-90)}
 function buildBlades(){const A=AREAS[S.area],rnd=seeded(S.area.length*977+13);F.blades=[];const n=Math.round(F.W*F.H/3900*A.grass);
-  for(let i=0;i<n;i++){const y=F.H*.28+rnd()*F.H*.75;F.blades.push({x:rnd()*F.W,y,h:(16+rnd()*38)*(.6+y/F.H),lean:(rnd()-.5)*.72,ph:rnd()*6.28,col:A.blade[Math.floor(rnd()*A.blade.length)],plume:A.susuki&&rnd()<.2})}
+  const gy=fieldGroundY();for(let i=0;i<n;i++){const y=gy+rnd()*(F.H*1.03-gy);F.blades.push({x:rnd()*F.W,y,h:(16+rnd()*38)*(.6+y/F.H),lean:(rnd()-.5)*.72,ph:rnd()*6.28,col:A.blade[Math.floor(rnd()*A.blade.length)],plume:A.susuki&&rnd()<.2})}
   F.blades.sort((a,b)=>a.y-b.y);
   F.trees=[];if(A.trees){const r2=seeded(7);for(let x=-20;x<F.W+40;x+=24+r2()*30)F.trees.push({x,h:F.H*(.18+r2()*.14),w:30+r2()*40})}}
 function enterField(){F.active=true;const{W,H}=fitCanvas(fc);F.W=W;F.H=H;F.lx=F.tx=W/2;F.ly=F.ty=H*.6;buildBlades();
@@ -464,7 +469,7 @@ function swing(x,y){if(F.net)return;F.net={x,y,t:performance.now()};sfx('swish')
   let best=null,bd=1e9;for(const b of F.bugs){const d=Math.hypot(b.x-x,b.y-y);if(d<bd){bd=d;best=b}}
   const reach=34+(best?SPECIES[best.sp].len*.6:0);
   if(best&&bd<reach){setTimeout(()=>caught(best),260);return}
-  for(const b of F.bugs){const d=Math.hypot(b.x-x,b.y-y);if(d<110){const a=Math.random()*6.28,r=rr(120,220);b.x=clamp(b.x+Math.cos(a)*r,30,F.W-30);b.y=clamp(b.y+Math.sin(a)*r,F.H*.3,F.H-30);b.voice.hush(rr(3,6))}
+  for(const b of F.bugs){const d=Math.hypot(b.x-x,b.y-y);if(d<110){const a=Math.random()*6.28,r=rr(120,220);b.x=clamp(b.x+Math.cos(a)*r,30,F.W-30);b.y=clamp(b.y+Math.sin(a)*r,fieldGroundY(),F.H-30);b.voice.hush(rr(3,6))}
     else if(d<170)b.voice.hush(rr(1.5,3))}}
 let lastCaught=null;
 function caught(fb){const i=F.bugs.indexOf(fb);if(i<0)return;F.bugs.splice(i,1);fb.voice.stop();sfx('catch');F.respawn.push(performance.now()+rr(6000,12000));
@@ -478,7 +483,7 @@ document.getElementById('catchMore').onclick=()=>document.getElementById('catchM
 document.getElementById('catchGo').onclick=()=>{document.getElementById('catchM').classList.remove('on');show('garden')};
 
 function drawField(now,dt){
-  const{c,W,H}=fitCanvas(fc);if(Math.abs(W-F.W)>2||Math.abs(H-F.H)>2){F.W=W;F.H=H;buildBlades();F.bugs.forEach(b=>{b.x=clamp(b.x,30,W-30);b.y=clamp(b.y,H*.3,H-30)})}
+  const{c,W,H}=fitCanvas(fc);if(Math.abs(W-F.W)>2||Math.abs(H-F.H)>2){F.W=W;F.H=H;buildBlades();F.bugs.forEach(b=>{b.x=clamp(b.x,30,W-30);b.y=clamp(b.y,fieldGroundY(),H-30)})}
   const A=AREAS[S.area];
   // 灯りの移動（速度に上限）
   const dx=F.tx-F.lx,dy=F.ty-F.ly,dist=Math.hypot(dx,dy),maxStep=420*dt,step=Math.min(dist,maxStep);
@@ -541,7 +546,7 @@ function syncGarden(){ // 庭にいる虫と声を一致させる
   for(const b of inGarden())if(!G.voices.has(b.id)){const v=new Voice(b.sp,b,gardenBus);v.partners=()=>partnersOf(b);G.voices.set(b.id,v);if(b.mute)v.setMuted(true);applyPos(b)}}
 function stopGarden(){for(const v of G.voices.values())v.stop();G.voices.clear()}
 function gLocal(e){const r=gc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-const gTop=()=>G.H*.22;
+const gTop=()=>clamp(artGroundY(GARDEN_ART,GARDEN_GROUND,G.W,G.H,innerWidth<=480?.65:.5),16,G.H*.6);
 function toPx(b){return{x:24+b.x*(G.W-48),y:gTop()+b.y*(G.H-gTop()-24)}}
 function fromPx(x,y){return{x:clamp((x-24)/(G.W-48),0,1),y:clamp((y-gTop())/(G.H-gTop()-24),0,1)}}
 gc.addEventListener('pointerdown',e=>{const p=gLocal(e);let hit=null,hd=1e9;for(const b of inGarden()){const q=toPx(b),d=Math.hypot(q.x-p.x,q.y-p.y);if(d<Math.max(26,SPECIES[b.sp].len)&&d<hd){hd=d;hit=b}}
