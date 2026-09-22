@@ -8,6 +8,11 @@ if(SELFTEST)addEventListener('load',async()=>{
   const until=async(fn,ms=5000)=>{const t=Date.now();while(Date.now()-t<ms){if(fn())return true;await wait(100)}return false};
   const imgOk=img=>img&&img.complete&&img.naturalWidth>0;
   gc.setPointerCapture=fc.setPointerCapture=()=>{}; // 合成したポインター操作でも動くように
+  await check('英語で起動：最初の画面と上のボタンに日本語が残っていない',()=>{
+    if(LANG!=='en')return '英語で起動していない（?lang=en が効いていない）';
+    const jp=/[ぁ-んァ-ヶ一-龠]/,bad=document.body.innerText.split('\n').filter(l=>jp.test(l)&&l.trim()!==t('lang.switch'));
+    return !bad.length||'日本語のまま: '+bad.slice(0,4).map(l=>'「'+l.trim().slice(0,20)+'」').join(' ')});
+  setLang('ja'); // ここからの項目は日本語で確かめる（英語は最後にまとめて）
   await check('はじめる：音が動き出す',async()=>{document.getElementById('startBtn').click();return await until(()=>ac&&ac.state==='running'&&ac.currentTime>.2,4000)||'AudioContextが動かない'});
   await check('画像：背景・虫・庭・ロゴがすべて読み込める',async()=>{
     const all=[GARDEN_ART,...Object.values(AREA_ART),...Object.values(BUG_ART),...document.images];
@@ -40,6 +45,17 @@ if(SELFTEST)addEventListener('load',async()=>{
   await check('ぜんぶ逃がす：2回押しで全部いなくなり、「バイバイ！」が出る',async()=>{const b=document.getElementById('freeAll');b.click();const mid=S.bugs.length;b.click();await wait(100);
     return (mid>0&&S.bugs.length===0&&document.getElementById('toast').textContent.includes('バイバイ！'))||`途中${mid}匹・最後${S.bugs.length}匹`});
   await check('描画：各画面を数フレーム描いてもエラーが出ない',async()=>{for(const t of['field','garden','zukan']){show(t);await wait(400)}return true});
+  await check('英語表示：3つの画面と虫の詳細に日本語が残っておらず、辞書の抜けもない',async()=>{
+    setLang('en');S.seen={emma:1,kantan:1};S.bugs=[];
+    for(const[id,sp,g]of[[951,'emma',true],[952,'kantan',true],[953,'suzumushi',false]])S.bugs.push({id,sp,pitch:1,rate:1,name:nextName(sp),garden:g,x:.3+id%3*.2,y:.6,mute:false});
+    const jp=/[ぁ-んァ-ヶ一-龠]/,found=new Set();const scan=where=>{document.getElementById('toast').textContent=''; /* 前の項目のお知らせは除く。「日本語」は日本語に戻すボタンなので正しい */
+      for(const line of document.body.innerText.split('\n'))if(jp.test(line)&&line.trim()!==t('lang.switch'))found.add(where+'「'+line.trim().slice(0,30)+'」')};
+    for(const tb of['field','garden','zukan']){show(tb);syncGarden();renderBench();if(tb==='zukan')renderZukan();await wait(500);scan(tb)}
+    show('garden');await wait(200);openBug(S.bugs[0]);await wait(100);scan('虫の詳細');closeBug();
+    const names=S.bugs.map(b=>b.name).join(', ');setLang('ja');
+    const miss=[...i18nMissing];
+    if(!/#1$/.test(S.bugs[0].name))return '英語の名前の付け方が違う: '+names;
+    return (!found.size&&!miss.length)||[...found].slice(0,5).join(' / ')+(miss.length?' ／辞書の抜け: '+miss.join(', '):'')});
   results.push({name:'エラーが1つも出ていない',ok:errors.length===0,detail:errors.slice(0,5).join(' / ')});
   try{localStorage.removeItem(KEY)}catch(e){}
   fetch('/__selftest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({results,ua:navigator.userAgent})});

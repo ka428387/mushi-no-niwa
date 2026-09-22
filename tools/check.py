@@ -142,9 +142,10 @@ def run_selftest(root, timeout=90):
     srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     ud = tempfile.mkdtemp()
+    # ?lang=en：英語で起動して、英語の初期表示も確かめる（その後テストの中で日本語に切り替える）
     p = subprocess.Popen([CHROME, '--headless=new', '--autoplay-policy=no-user-gesture-required', '--no-first-run',
                           '--no-default-browser-check', '--window-size=390,844', f'--user-data-dir={ud}',
-                          f'http://127.0.0.1:{srv.server_address[1]}/index.html?selftest'],
+                          f'http://127.0.0.1:{srv.server_address[1]}/index.html?selftest&lang=en'],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     t0 = time.time()
     while 'r' not in res and time.time() - t0 < timeout and p.poll() is None: time.sleep(.3)

@@ -27,42 +27,44 @@
 
 <div id="start">
   <h2><img src="assets/brand/izayoi-lockup.svg" alt="Izayoi — A Garden of Insect Songs — 虫の音の庭"></h2>
-  <p>夜の草むらで秋の虫をさがして、<br>自分だけの庭に放して音を育てる。<br><small>イヤホンだと、虫のいる方向が聞き分けられます。</small></p>
-  <button id="startBtn">はじめる</button>
+  <p data-i18n-html="start.lead">夜の草むらで秋の虫をさがして、<br>自分だけの庭に放して音を育てる。<br><small>イヤホンだと、虫のいる方向が聞き分けられます。</small></p>
+  <button id="startBtn" data-i18n="start.begin">はじめる</button>
+  <button id="langBtnStart" class="lang" style="background:none;border:none;padding:4px 8px;font-size:13px;letter-spacing:.05em;color:var(--sub);text-decoration:underline" data-i18n="lang.switch">English</button>
 </div>
 
 <header>
-  <h1><img src="assets/brand/izayoi-wordmark.svg" alt="Izayoi"><small>虫の音の庭</small></h1>
-  <button id="playBtn">一時停止</button>
+  <h1><img src="assets/brand/izayoi-wordmark.svg" alt="Izayoi"><small data-i18n="brand.sub">虫の音の庭</small></h1>
+  <button id="langBtn" class="btn lang" data-i18n="lang.switch">English</button>
+  <button id="playBtn" data-i18n="play.pause">一時停止</button>
 </header>
 <nav>
-  <button data-tab="field">探す</button>
-  <button data-tab="garden">庭</button>
-  <button data-tab="zukan">図鑑</button>
+  <button data-tab="field" data-i18n="tab.field">探す</button>
+  <button data-tab="garden" data-i18n="tab.garden">庭</button>
+  <button data-tab="zukan" data-i18n="tab.zukan">図鑑</button>
 </nav>
 
 <main>
   <section id="field">
     <div class="stage" id="fstage"><canvas id="fc"></canvas><div class="stat" id="fstat"></div></div>
     <div class="chips" id="areas"></div>
-    <p class="hint">灯りを動かして声のする方へ。<b>急いで近づくと鳴きやみます</b>。灯りの中で虫が光ったら、そこをタップして網をふります。<br>パソコンはマウスで灯りを動かしてクリック。スマホはドラッグで灯りを動かし、灯りのそばをタップ。</p>
+    <p class="hint" data-i18n-html="field.hint">灯りを動かして声のする方へ。<b>急いで近づくと鳴きやみます</b>。灯りの中で虫が光ったら、そこをタップして網をふります。<br>パソコンはマウスで灯りを動かしてクリック。スマホはドラッグで灯りを動かし、灯りのそばをタップ。</p>
   </section>
 
   <section id="garden">
-    <div class="stage" id="gstage"><canvas id="gc"></canvas><div class="stat" id="gstat"></div><div class="empty" id="gempty">まだ庭に虫がいません。<br>「探す」で虫をつかまえてきましょう。</div></div>
-    <p class="hint">虫をドラッグして置き場所を変えられます。<b>左右</b>で聞こえる方向が、<b>奥／手前</b>で遠さと響きが変わります。同じ種類の虫を近くに置くと、<b>交互に鳴き交わします</b>。ドラッグ中に<b>中央下の虫かご</b>へ運ぶと、控えに移せます。虫をタップすると詳しく見られます。</p>
+    <div class="stage" id="gstage"><canvas id="gc"></canvas><div class="stat" id="gstat"></div><div class="empty" id="gempty" data-i18n-html="garden.empty">まだ庭に虫がいません。<br>「探す」で虫をつかまえてきましょう。</div></div>
+    <p class="hint" data-i18n-html="garden.hint">虫をドラッグして置き場所を変えられます。<b>左右</b>で聞こえる方向が、<b>奥／手前</b>で遠さと響きが変わります。同じ種類の虫を近くに置くと、<b>交互に鳴き交わします</b>。ドラッグ中に<b>中央下の虫かご</b>へ運ぶと、控えに移せます。虫をタップすると詳しく見られます。</p>
     <div class="ctrls">
-      <div class="wx">天気<div class="chips" id="weather"></div><div style="font-size:11.5px">小雨にすると、虫の声に雨音が重なります。</div></div>
-      <label>気温<b id="tempL"></b><input type="range" id="temp" min="14" max="30" step="1"></label>
-      <label>夜の深さ（響き）<b id="depthL"></b><input type="range" id="depth" min="0" max="1.4" step="0.05"></label>
-      <div class="note">秋の虫は気温が高いほど速く、低いほどゆっくり鳴きます。</div>
-      <label>風の音<b id="windL"></b><input type="range" id="wind" min="0" max="1" step="0.05"></label>
-      <label>音のやわらかさ<b id="softL"></b><input type="range" id="soft" min="0" max="1" step="0.05"></label>
-      <label>音量<b id="volL"></b><input type="range" id="vol" min="0" max="1" step="0.05"></label>
-      <label>おやすみタイマー<select id="timer"><option value="0">なし</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option><option value="90">90分</option></select></label>
+      <div class="wx"><span data-i18n="wx.title">天気</span><div class="chips" id="weather"></div><div style="font-size:11.5px" data-i18n="wx.note">小雨にすると、虫の声に雨音が重なります。</div></div>
+      <label><span data-i18n="ctl.temp">気温</span><b id="tempL"></b><input type="range" id="temp" min="14" max="30" step="1"></label>
+      <label><span data-i18n="ctl.depth">夜の深さ（響き）</span><b id="depthL"></b><input type="range" id="depth" min="0" max="1.4" step="0.05"></label>
+      <div class="note" data-i18n="ctl.tempNote">秋の虫は気温が高いほど速く、低いほどゆっくり鳴きます。</div>
+      <label><span data-i18n="ctl.wind">風の音</span><b id="windL"></b><input type="range" id="wind" min="0" max="1" step="0.05"></label>
+      <label><span data-i18n="ctl.soft">音のやわらかさ</span><b id="softL"></b><input type="range" id="soft" min="0" max="1" step="0.05"></label>
+      <label><span data-i18n="ctl.vol">音量</span><b id="volL"></b><input type="range" id="vol" min="0" max="1" step="0.05"></label>
+      <label><span data-i18n="ctl.timer">おやすみタイマー</span><select id="timer"><option value="0">なし</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option><option value="90">90分</option></select></label>
       <label>&nbsp;<b id="timerL" style="margin:0"></b></label>
     </div>
-    <div class="gclear"><button class="btn" id="clearGarden">庭の虫をぜんぶ控えへ</button><button class="btn warn" id="freeAll">虫をぜんぶ逃がす</button></div>
+    <div class="gclear"><button class="btn" id="clearGarden" data-i18n="btn.clearGarden">庭の虫をぜんぶ控えへ</button><button class="btn warn" id="freeAll" data-i18n="btn.freeAll">虫をぜんぶ逃がす</button></div>
     <h2 id="benchH">控えの虫かご</h2>
     <div class="list" id="bench"></div>
   </section>
@@ -78,24 +80,25 @@
   <canvas id="catchC"></canvas>
   <h3 id="catchT"></h3>
   <p id="catchP"></p>
-  <div class="acts"><button class="btn" id="catchMore">つづけて探す</button><button class="btn pri" id="catchGo">庭へ行く</button></div>
+  <div class="acts"><button class="btn" id="catchMore" data-i18n="catch.more">つづけて探す</button><button class="btn pri" id="catchGo" data-i18n="catch.go">庭へ行く</button></div>
 </div></div>
 
 <div class="modal" id="bugM"><div class="sheet">
   <canvas id="bugC"></canvas>
   <h3 id="bugT"></h3>
   <p id="bugP"></p>
-  <div class="rename" id="renameRow"><input id="bugNameIn" maxlength="12" enterkeyhint="done"><button class="btn pri" id="bugNameOk">決定</button></div>
+  <div class="rename" id="renameRow"><input id="bugNameIn" maxlength="12" enterkeyhint="done"><button class="btn pri" id="bugNameOk" data-i18n="bug.ok">決定</button></div>
   <div class="acts">
-    <button class="btn" id="bugRename">名前</button>
+    <button class="btn" id="bugRename" data-i18n="bug.name">名前</button>
     <button class="btn" id="bugMute">休ませる</button>
-    <button class="btn" id="bugBench">控えへ</button>
+    <button class="btn" id="bugBench" data-i18n="bug.toBench">控えへ</button>
     <button class="btn warn" id="bugFree">逃がす</button>
   </div>
-  <div class="acts" style="margin-top:8px"><button class="btn" id="bugClose">閉じる</button></div>
+  <div class="acts" style="margin-top:8px"><button class="btn" id="bugClose" data-i18n="bug.close">閉じる</button></div>
 </div></div>
 
 <script src="js/util.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/art.js"></script>
 <script src="js/art-fit.js"></script>
 <script src="js/app.js"></script>

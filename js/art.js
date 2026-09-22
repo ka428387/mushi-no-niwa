@@ -7,6 +7,7 @@
      drawArtMoon(c, img, rect, ART_MOON[場所], moon, hide)  … 絵の満月を今夜の形に欠けさせる。背景を描いた直後に必ず呼ぶ
      ART_MOON / HORIZON / GARDEN_GROUND（art-fit.js）       … 絵に合わせて Claude Code が測る値。ここでは読むだけ
      coverRect, fitCanvas, seeded, clamp（util.js）
+     t('キー')（i18n.js）                                  … 画面に書く文字は必ずこれで（日本語・英語の辞書から引く）
    ============================================================ */
 
 // ───────── 虫の見た目（絵がないときの形と色、大きさ） ─────────
@@ -136,8 +137,8 @@ function paintGarden(c,W,H,now,v){
   c.clearRect(0,0,W,H);
   if(GARDEN_ART.complete&&GARDEN_ART.naturalWidth){ // 庭の絵（CSS背景と同じ位置）に今夜の月を重ねる
     const rect=coverRect(GARDEN_ART,W,H,artPosX(),.5);c.drawImage(GARDEN_ART,rect.x,rect.y,rect.w,rect.h);drawArtMoon(c,GARDEN_ART,rect,ART_MOON.garden,v.moon,rl*.92)}
-  c.fillStyle='rgba(242,237,223,.62)';c.font='11px sans-serif';c.textAlign='center';c.fillText('奥（遠く・よく響く）',W/2,top+14);if(!v.dragging)c.fillText('手前（近く・はっきり）',W/2,H-8);
-  c.textAlign='left';c.fillText('左',8,(top+H)/2);c.textAlign='right';c.fillText('右',W-8,(top+H)/2);
+  c.fillStyle='rgba(242,237,223,.62)';c.font='11px sans-serif';c.textAlign='center';c.fillText(t('garden.back'),W/2,top+14);if(!v.dragging)c.fillText(t('garden.front'),W/2,H-8);
+  c.textAlign='left';c.fillText(t('garden.left'),8,(top+H)/2);c.textAlign='right';c.fillText(t('garden.right'),W-8,(top+H)/2);
   // 掛け合っている仲間を点線でつなぐ
   c.setLineDash([2,5]);c.lineWidth=1;
   for(const{p,q,on}of v.pairs){c.strokeStyle=`rgba(240,201,106,${on?.45:.15})`;c.beginPath();c.moveTo(p.x,p.y);c.quadraticCurveTo((p.x+q.x)/2,Math.min(p.y,q.y)-20,q.x,q.y);c.stroke()}
@@ -145,7 +146,7 @@ function paintGarden(c,W,H,now,v){
   for(const b of v.bugs){const sp=SPECIES_LOOK[b.key];
     const s=(.75+.55*b.ny)*(sp.len<14?1.5:1);drawBug(c,sp,b.x,b.y,s,b.mute?.45:1,b.sing?1:0);
     if(b.sing){const ph=(now/600)%1;c.strokeStyle=`rgba(240,201,106,${(1-ph)*.35})`;c.lineWidth=1;c.beginPath();c.arc(b.x,b.y,sp.len*s*.6+ph*16,0,7);c.stroke()}
-    c.fillStyle=b.mute?'rgba(200,200,210,.35)':'rgba(230,230,220,.6)';c.font='10px sans-serif';c.textAlign='center';c.fillText(b.name+(b.mute?'（休）':''),b.x,b.y+sp.len*s*.5+12)}
+    c.fillStyle=b.mute?'rgba(200,200,210,.35)':'rgba(230,230,220,.6)';c.font='10px sans-serif';c.textAlign='center';c.fillText(b.name+(b.mute?t('bug.restMark'):''),b.x,b.y+sp.len*s*.5+12)}
   if(rl>.02){ // 雲・雨すじ・水はね
     c.globalAlpha=1;c.fillStyle=`rgba(16,20,30,${rl*.45})`;c.fillRect(0,0,W,H);
     const t=now/1000,n=Math.round(140*rl);c.strokeStyle=`rgba(175,190,215,${.18+.12*rl})`;c.lineWidth=1;c.beginPath();
@@ -164,4 +165,4 @@ function paintCage(c,{x,y,on}){const r=on?34:28;
   c.moveTo(x0,y0);c.lineTo(x0+w,y0);c.lineTo(x0+w,y0+h);c.lineTo(x0,y0+h);c.closePath();
   for(let i=1;i<5;i++){c.moveTo(x0+w*i/5,y0);c.lineTo(x0+w*i/5,y0+h)}
   c.moveTo(x-w*.25,y0);c.quadraticCurveTo(x,y0-h*.45,x+w*.25,y0);c.stroke();
-  c.fillStyle='rgba(247,237,207,.85)';c.font='11px sans-serif';c.textAlign='center';c.fillText(on?'はなすと控えへ':'控えの虫かご',x,y-r-8);c.restore()}
+  c.fillStyle='rgba(247,237,207,.85)';c.font='11px sans-serif';c.textAlign='center';c.fillText(t(on?'cage.drop':'cage.label'),x,y-r-8);c.restore()}
