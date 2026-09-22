@@ -41,6 +41,13 @@ section{display:none}section.on{display:block}
 .chips{display:flex;gap:6px;margin:10px 0 6px;flex-wrap:wrap}
 .chips button{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--sub)}
 .chips button.on{color:var(--text);border-color:var(--green)}
+#areas button{--area:#73a783;--area-bg:rgba(115,167,131,.16);display:inline-flex;align-items:center;gap:7px;border-color:rgba(183,202,185,.24);transition:background .2s,border-color .2s,color .2s}
+#areas button::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--area);box-shadow:0 0 0 2px rgba(255,255,255,.05)}
+#areas button[data-area="kusamura"]{--area:#c9793d;--area-bg:rgba(201,121,61,.18)}
+#areas button[data-area="kawara"]{--area:#71b9ca;--area-bg:rgba(113,185,202,.17)}
+#areas button[data-area="hayashi"]{--area:#78a05e;--area-bg:rgba(120,160,94,.18)}
+#areas button[data-area="kouen"]{--area:#c88daa;--area-bg:rgba(200,141,170,.17)}
+#areas button.on{color:var(--text);border-color:var(--area);background:var(--area-bg);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
 .hint{font-size:12.5px;color:var(--sub);line-height:1.7;margin:6px 2px}
 .stat{position:absolute;left:10px;top:8px;font-size:12px;color:#c9cbd6;opacity:.8;pointer-events:none;text-shadow:0 1px 3px #000}
 .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--sub);font-size:14px;line-height:1.8;pointer-events:none;padding:20px}
@@ -240,13 +247,13 @@ for(const key of SP_KEYS){
 }
 
 const AREAS={
-  kusamura:{name:'秋の野原',art:'autumn-meadow.jpg',grass:1,sky:['#08283a','#0a3540'],ground:['#2d6b58','#17463e'],blade:['#3f7e64','#5a9170','#b88732'],n:7,
+  kusamura:{name:'秋の野原',art:'autumn-meadow-color.jpg',grass:1,sky:['#2b1c34','#493047'],ground:['#747844','#4a4f2c'],blade:['#2f3a25','#7e7a43','#d18a2e'],n:7,
     w:{emma:5,suzumushi:4,tsuzure:3,kanetataki:2,matsumushi:1,kumasuzu:1,kusahibari:1}},
-  kawara:{name:'河原のススキ原',art:'river-susuki.jpg',grass:.55,sky:['#0a2a3b','#123b45'],ground:['#315e50','#183d37'],blade:['#927337','#d3a03e','#527e63'],n:7,susuki:true,
+  kawara:{name:'河原のススキ原',art:'river-susuki-color.jpg',grass:.55,sky:['#032449','#074a73'],ground:['#15577a','#073d5f'],blade:['#6aaab4','#d9bf76','#3f8794'],n:7,susuki:true,
     w:{matsumushi:4,emma:3,kutsuwa:2,kirigirisu:2,kayakiri:2,suzumushi:1,kusahibari:1}},
-  hayashi:{name:'雑木林のへり',art:'woodland-edge.jpg',grass:.4,sky:['#061f2b','#0a3035'],ground:['#285647','#12362f'],blade:['#326e57','#4f8568','#a37e32'],n:6,trees:true,
+  hayashi:{name:'雑木林のへり',art:'woodland-edge-color.jpg',grass:.4,sky:['#061c16','#123728'],ground:['#48613a','#1f3a27'],blade:['#31583c','#788b55','#d76c2d'],n:6,trees:true,
     w:{kantan:4,umaoi:3,kanetataki:3,kutsuwa:2,tsuyumushi:2,kumasuzu:1,kusahibari:1}},
-  kouen:{name:'街の公園',art:'city-park.jpg',grass:.12,sky:['#0d2939','#173b42'],ground:['#326451','#173c35'],blade:['#477b60','#659176','#c08f36'],n:7,trees:true,
+  kouen:{name:'街の公園',art:'city-park-color.jpg',grass:.12,sky:['#2a1e3d','#4d3763'],ground:['#819177','#4a615a'],blade:['#627a72','#93a388','#f27f69'],n:7,trees:true,
     w:{aomatsu:5,tsuzure:4,emma:3,kanetataki:2,tsuyumushi:1,kumasuzu:1}},
 };
 const GARDEN_ART=new Image();GARDEN_ART.src='assets/garden.jpg';
@@ -341,10 +348,10 @@ function drawMoon(c,x,y,r,m,alpha=1){c.save();c.globalAlpha=alpha;
 // Codexの絵に描かれた満月の位置（画像に対する割合）と、まわりの色
 const ART_MOON={
   garden:{x:.7081,y:.1026,r:.0421,rim:'#44525a',sky:'#082c44'},
-  kusamura:{x:.71,y:.1056,r:.0395,rim:'#42515a',sky:'#062e4a'},
-  kawara:{x:.7058,y:.1265,r:.0413,rim:'#2d4e5e',sky:'#02273f'},
-  hayashi:{x:.6951,y:.1391,r:.0385,rim:'#274f6a',sky:'#082f4a'},
-  kouen:{x:.7208,y:.1252,r:.0396,rim:'#3b5265',sky:'#052c4f'},
+  kusamura:{x:.71,y:.1056,r:.0395,rim:'#664c50',sky:'#39243a'},
+  kawara:{x:.7058,y:.1265,r:.0413,rim:'#2d608b',sky:'#02274f'},
+  hayashi:{x:.6951,y:.1391,r:.0385,rim:'#364935',sky:'#0d2a21'},
+  kouen:{x:.7208,y:.1252,r:.0396,rim:'#695570',sky:'#3b2b53'},
 };
 const hexRgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
 const rgba=(h,a)=>`rgba(${hexRgb(h).join(',')},${a})`;
@@ -516,7 +523,7 @@ function drawField(now,dt){
   F.respawn=F.respawn.filter(t=>{if(now>t){spawnBug();return false}return true});
   document.getElementById('fstat').textContent=`${A.name}　今夜は${moon.name}`;
 }
-function renderAreas(){const el=document.getElementById('areas');el.innerHTML='';for(const k in AREAS){const b=document.createElement('button');b.textContent=AREAS[k].name;b.className=k===S.area?'on':'';
+function renderAreas(){const el=document.getElementById('areas');el.innerHTML='';for(const k in AREAS){const b=document.createElement('button');b.textContent=AREAS[k].name;b.dataset.area=k;b.className=k===S.area?'on':'';
   b.onclick=()=>{S.area=k;save();renderAreas();if(F.active)enterField()};el.appendChild(b)}}
 
 // ───────── 庭 ─────────
