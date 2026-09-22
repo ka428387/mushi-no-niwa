@@ -67,7 +67,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 .btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px}
 .btn.pri{border-color:var(--accent);color:var(--accent)}
 .btn.warn{color:var(--danger)}
-.gclear{display:flex;justify-content:flex-end;margin:-4px 0 0}
+.gclear{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:-4px 0 0}
 .btn:disabled{opacity:.4;cursor:default}
 .zukan{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
@@ -138,7 +138,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
       <label>おやすみタイマー<select id="timer"><option value="0">なし</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option><option value="90">90分</option></select></label>
       <label>&nbsp;<b id="timerL" style="margin:0"></b></label>
     </div>
-    <div class="gclear"><button class="btn" id="clearGarden">庭の虫をぜんぶ控えへ</button></div>
+    <div class="gclear"><button class="btn" id="clearGarden">庭の虫をぜんぶ控えへ</button><button class="btn warn" id="freeAll">虫をぜんぶ逃がす</button></div>
     <h2 id="benchH">控えの虫かご</h2>
     <div class="list" id="bench"></div>
   </section>
@@ -617,6 +617,8 @@ function armButton(btn,label,act){if(btn.classList.contains('armed')){act();retu
   clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.classList.remove('armed');btn.textContent=orig},4000)}
 document.getElementById('clearGarden').onclick=e=>{if(!inGarden().length){toast('庭に虫がいません');return}
   armButton(e.currentTarget,'もう一度押すと、庭の虫をぜんぶ控えへ',()=>{const n=inGarden().length;inGarden().forEach(b=>b.garden=false);save();syncGarden();renderBench();toast(`${n}匹を控えの虫かごへ移しました`)})};
+document.getElementById('freeAll').onclick=e=>{const n=S.bugs.length;if(!n){toast('逃がす虫がいません');return}
+  armButton(e.currentTarget,`もう一度押すと${n}匹を逃がします`,()=>{S.bugs=[];save();syncGarden();renderBench();toast(`${n}匹を野に逃がしました`)})};
 function release(b){S.bugs=S.bugs.filter(x=>x!==b);save();syncGarden();renderBench();toast(`${b.name}を野に逃がしました`)}
 let toastT;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2500)}
 document.getElementById('bugFree').onclick=e=>armButton(e.currentTarget,'もう一度押すと逃がします',()=>{release(G.sel);closeBug()});
