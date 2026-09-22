@@ -275,7 +275,7 @@ const inGarden=()=>S.bugs.filter(b=>b.garden);
 function traits(b){const t=[];t.push(b.pitch<.98?'低めの声':b.pitch>1.02?'高めの声':'ふつうの声');t.push(b.rate>1.04?'せっかち':b.rate<.96?'のんびり屋':'マイペース');return t.join('・')}
 
 // ───────── 音 ─────────
-let rainBus,rainHiss,lowpass,shelf,ac,master,reverbIn,fieldBus,gardenBus,previewBus,noiseBuf,windGain,playing=true;
+let revOut,gardenRev,rainRev,rainBus,rainHiss,lowpass,shelf,ac,master,reverbIn,fieldBus,gardenBus,previewBus,noiseBuf,windGain,playing=true;
 function makeIR(sec){const n=ac.sampleRate*sec,b=ac.createBuffer(2,n,ac.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3.2)}return b}
 function initAudio(){
   const AC=window.AudioContext||window.webkitAudioContext;ac=new AC();
@@ -285,7 +285,8 @@ function initAudio(){
   shelf=ac.createBiquadFilter();shelf.type='highshelf';shelf.frequency.value=3500;setSoft(S.settings.soft);
   const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3;
   master.connect(lowpass);lowpass.connect(shelf);shelf.connect(comp);comp.connect(ac.destination);
-  const rev=ac.createConvolver();rev.buffer=makeIR(3.2);reverbIn=ac.createGain();reverbIn.gain.value=S.settings.depth;reverbIn.connect(rev);rev.connect(master);
+  const rev=ac.createConvolver();rev.buffer=makeIR(3.2);reverbIn=ac.createGain();reverbIn.gain.value=S.settings.depth;reverbIn.connect(rev);revOut=ac.createGain();rev.connect(revOut);revOut.connect(master);
+  gardenRev=ac.createGain();gardenRev.connect(reverbIn);rainRev=ac.createGain();rainRev.connect(reverbIn); // 庭の虫・雨の響きは、図鑑の試聴中に小さくできるよう別の道を通す
   fieldBus=ac.createGain();gardenBus=ac.createGain();previewBus=ac.createGain();[fieldBus,gardenBus,previewBus].forEach(b=>b.connect(master));
   noiseBuf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);{const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
   // 風：ブラウンノイズ寄りの低い音にゆっくりした揺らぎ
@@ -319,7 +320,7 @@ function drip(t){ // 軒先のしずく：左手前で低く短い「ポタ」
   const n=ac.createBufferSource(),nf=ac.createBiquadFilter(),ng=ac.createGain(); // 着地の「タ」
   n.buffer=noiseBuf;nf.type='bandpass';nf.frequency.value=900;nf.Q.value=1;ng.gain.setValueAtTime(.03,t);ng.gain.exponentialRampToValueAtTime(.0001,t+.02);
   p.pan.value=-.55;const sd=ac.createGain();sd.gain.value=.15;
-  o.connect(g);n.connect(nf);nf.connect(ng);ng.connect(p);g.connect(p);p.connect(rainBus);g.connect(sd);sd.connect(reverbIn);
+  o.connect(g);n.connect(nf);nf.connect(ng);ng.connect(p);g.connect(p);p.connect(rainBus);g.connect(sd);sd.connect(rainRev);
   o.start(t);o.stop(t+.14);n.start(t,Math.random()*1.8,.03)}
 function rainTick(){const now=ac.currentTime,h=now+.3,tgt=RAIN_T[S.settings.weather];
   rainLvl+=(tgt-rainLvl)*.02; // 約3秒かけて強まる・弱まる
@@ -379,7 +380,7 @@ class Voice{
     const lvl=ac.createGain();lvl.gain.value=sp.gain;this.env.connect(lvl);
     this.out=ac.createGain();this.out.gain.value=0;lvl.connect(this.out);
     this.pan=ac.createStereoPanner();this.out.connect(this.pan);this.pan.connect(bus);
-    this.send=ac.createGain();this.send.gain.value=.3;this.out.connect(this.send);this.send.connect(reverbIn);
+    this.send=ac.createGain();this.send.gain.value=.3;this.out.connect(this.send);this.send.connect(bus===gardenBus?gardenRev:reverbIn);
     this.nodes=[this.env,this.am,lg,lvl,this.out,this.pan,this.send];
     this.nextT=ac.currentTime+.1+Math.random()*2.5;
   }
@@ -628,13 +629,13 @@ document.getElementById('playBtn').onclick=togglePlay;
 // ───────── 図鑑 ─────────
 let preview=null,previewBtn=null;
 // 図鑑の「声を聞く」：その虫の声だけが聞こえるよう、庭の虫・雨・風を小さくする
-function duck(on){const t=ac.currentTime,lv=on?.06:1;gardenBus.gain.setTargetAtTime(lv,t,.08);rainBus.gain.setTargetAtTime(on?.06:(tab==='field'?0:1),t,.08);windGain.gain.setTargetAtTime(S.settings.wind*.5*(on?.1:1),t,.08)}
+function duck(on){const t=ac.currentTime,lv=on?.03:1;gardenBus.gain.setTargetAtTime(lv,t,.08);gardenRev.gain.setTargetAtTime(lv,t,.08);rainRev.gain.setTargetAtTime(lv,t,.08);revOut.gain.setTargetAtTime(on?.03:1,t,.06);/* 響きの余韻も絞る */rainBus.gain.setTargetAtTime(on?.03:(tab==='field'?0:1),t,.08);windGain.gain.setTargetAtTime(S.settings.wind*.5*(on?.1:1),t,.08)}
 function endPreview(v){if(preview!==v)return;v.stop();preview=null;duck(false);
   if(previewBtn){previewBtn.textContent='声を聞く';previewBtn.classList.remove('pri');previewBtn=null}
   if(!playing){master.gain.setTargetAtTime(0,ac.currentTime,.2);setTimeout(()=>{if(!playing&&!preview)ac.suspend()},800)}}
 function playPreview(k,btn){if(!ac)return;if(preview)endPreview(preview);
   if(!playing){ac.resume();master.gain.setTargetAtTime(S.settings.vol,ac.currentTime,.05)} // 一時停止中でも聞けるように
-  duck(true);const v=new Voice(k,{pitch:1,rate:1},previewBus);v.out.gain.value=1;v.send.gain.value=.3;preview=v;previewBtn=btn;btn.textContent='聞いています…';btn.classList.add('pri');
+  duck(true);const v=new Voice(k,{pitch:1,rate:1},previewBus);v.out.gain.value=1.5;v.send.gain.value=0;preview=v;/* 試聴は響きなしのはっきりした声で */previewBtn=btn;btn.textContent='聞いています…';btn.classList.add('pri');
   let t=ac.currentTime+.25;const until=t+4; // 短い声の虫は4秒ほどくり返す
   do{v.nextT=t;t+=Math.max(.2,v.sp.phrase(v,t,tempo()))}while(t<until&&v.lastEnd<until-1.5);
   setTimeout(()=>endPreview(v),(v.lastEnd-ac.currentTime)*1000+500)}
