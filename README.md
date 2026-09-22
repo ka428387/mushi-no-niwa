@@ -1,4 +1,6 @@
-# 虫の音の庭
+# Izayoi — A Garden of Insect Songs
+
+虫の音の庭
 
 秋の虫をさがして、自分だけの庭で虫の音を育てるBGMアプリ。
 
