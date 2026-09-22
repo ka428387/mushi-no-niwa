@@ -17,7 +17,7 @@
 <meta property="og:site_name" content="Izayoi">
 <meta property="og:description" content="秋の虫をさがして、自分だけの庭で虫の音を育てる。">
 <meta property="og:url" content="https://ka428387.github.io/mushi-no-niwa/">
-<meta property="og:image" content="https://ka428387.github.io/mushi-no-niwa/og.png">
+<meta property="og:image" content="https://ka428387.github.io/mushi-no-niwa/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -27,8 +27,9 @@
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
 header{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:12px 16px 8px;padding-top:max(12px,env(safe-area-inset-top))}
-h1{font-family:Baskerville,"Hoefler Text",Georgia,serif;font-size:22px;margin:0;font-weight:400;letter-spacing:.04em;flex:1}
-h1 small{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;font-size:11px;color:var(--sub);font-weight:400;letter-spacing:0;margin-left:6px}
+h1{margin:0;flex:1;display:flex;align-items:center;gap:10px;font-weight:400}
+h1 img{width:96px;height:auto;display:block}
+h1 small{font-size:11px;color:var(--sub);font-weight:400;letter-spacing:0;margin-left:6px}
 #playBtn{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;color:var(--text)}
 nav{max-width:760px;margin:0 auto 10px;padding:0 16px;display:flex;gap:6px}
 nav button{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 0;font-size:14px;color:var(--sub)}
@@ -84,9 +85,8 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 .sheet .acts{display:flex;gap:8px;flex-wrap:wrap}
 .sheet .acts .btn{flex:1;padding:10px;font-size:14px}
 #start{position:fixed;inset:0;background:linear-gradient(rgba(2,24,27,.18),rgba(2,24,27,.7)),url('assets/garden.jpg') center 10%/cover no-repeat;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px}
-#start h2{font-family:Baskerville,"Hoefler Text",Georgia,serif;font-weight:400;font-size:40px;color:var(--text);letter-spacing:.06em;margin:0}
-#start .sub{font-family:Baskerville,"Hoefler Text",Georgia,serif;font-style:italic;font-size:17px;color:var(--accent);line-height:1.8;margin-top:-10px}
-#start .sub span{font-family:"Hiragino Mincho ProN",serif;font-style:normal;font-size:13px;color:var(--sub);letter-spacing:.2em}
+#start h2{margin:0;line-height:0}
+#start h2 img{width:min(96vw,480px);height:auto}
 #start p{color:var(--sub);font-size:13.5px;line-height:1.9;margin:0}
 #start button{background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:999px;padding:12px 40px;font-size:16px;letter-spacing:.2em}
 .wx{grid-column:1/-1;font-size:12.5px;color:var(--sub)}.wx .chips{margin:6px 0 2px}.wx .chips button{flex:1}
@@ -101,14 +101,13 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 <body>
 
 <div id="start">
-  <h2>Izayoi</h2>
-  <div class="sub">A Garden of Insect Songs<br><span>虫の音の庭</span></div>
+  <h2><img src="assets/brand/izayoi-lockup.svg" alt="Izayoi — A Garden of Insect Songs — 虫の音の庭"></h2>
   <p>夜の草むらで秋の虫をさがして、<br>自分だけの庭に放して音を育てる。<br><small>イヤホンだと、虫のいる方向が聞き分けられます。</small></p>
   <button id="startBtn">はじめる</button>
 </div>
 
 <header>
-  <h1>Izayoi<small>虫の音の庭</small></h1>
+  <h1><img src="assets/brand/izayoi-wordmark.svg" alt="Izayoi"><small>虫の音の庭</small></h1>
   <button id="playBtn">一時停止</button>
 </header>
 <nav>
