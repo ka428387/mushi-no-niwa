@@ -42,7 +42,7 @@ if(SELFTEST)addEventListener('load',async()=>{
     const during=[gardenBus.gain.value,revOut.gain.value];if(!preview||during.some(v=>v>.1))return '小さくならない: '+during.map(v=>v.toFixed(2));
     await until(()=>!preview,9000);await wait(500);const after=[gardenBus.gain.value,revOut.gain.value];return after.every(v=>v>.9)||'戻らない: '+after.map(v=>v.toFixed(2))});
   await check('天気：小雨で雨音が鳴り、晴れで止む',async()=>{show('garden');setWeather('light');await wait(2500);const on=rainLvl;setWeather('clear');await wait(3000);return (on>.2&&rainLvl<on)||`小雨${on.toFixed(2)}→晴れ${rainLvl.toFixed(2)}`});
-  await check('ぜんぶ逃がす：2回押しで全部いなくなり、「バイバイ！」が出る',async()=>{const b=document.getElementById('freeAll');b.click();const mid=S.bugs.length;b.click();await wait(100);
+  await check('すべて逃がす：2回押しで全部いなくなり、「バイバイ！」が出る',async()=>{const b=document.getElementById('freeAll');b.click();const mid=S.bugs.length;b.click();await wait(100);
     return (mid>0&&S.bugs.length===0&&document.getElementById('toast').textContent.includes('バイバイ！'))||`途中${mid}匹・最後${S.bugs.length}匹`});
   await check('描画：各画面を数フレーム描いてもエラーが出ない',async()=>{for(const t of['field','garden','zukan']){show(t);await wait(400)}return true});
   await check('英語表示：3つの画面と虫の詳細に日本語が残っておらず、辞書の抜けもない',async()=>{
