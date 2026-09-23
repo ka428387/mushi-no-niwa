@@ -350,12 +350,20 @@ let timerEnd=0;
 document.getElementById('timer').onchange=e=>{const m=+e.target.value;timerEnd=m?Date.now()+m*60000:0;if(m&&!playing)togglePlay()};
 function togglePlay(){if(!ac)return;playing=!playing;if(playing){ac.resume();master.gain.setTargetAtTime(S.settings.vol,ac.currentTime,.3)}
   else{master.gain.setTargetAtTime(0,ac.currentTime,.3);setTimeout(()=>{if(!playing)ac.suspend()},1200)}
-  document.getElementById('playBtn').textContent=t(playing?'play.pause':'play.play')}
+  document.getElementById('playBtn').textContent=t(playing?'play.pause':'play.play');updateNowPlaying()}
 document.getElementById('playBtn').onclick=togglePlay;
+// ロック画面・コントロールセンターの表示（アプリの箱で動いているときだけ出る）。「localhost」ではなく曲名を出す
+if('mediaSession' in navigator){
+  navigator.mediaSession.metadata=new MediaMetadata({title:'Izayoi',artist:t('brand.sub'),artwork:[{src:'icons/icon-192.png',sizes:'192x192',type:'image/png'},{src:'icons/icon-512.png',sizes:'512x512',type:'image/png'}]});
+  navigator.mediaSession.setActionHandler('play',()=>{if(!playing)togglePlay()});
+  navigator.mediaSession.setActionHandler('pause',()=>{if(playing)togglePlay()});
+}
+function updateNowPlaying(){if('mediaSession' in navigator)navigator.mediaSession.playbackState=playing?'playing':'paused'}
 refreshCtrlLabels();
 // 言語の切り替え：画面の文字を全部書き直す（名前をつけた虫の名前はそのまま）
 function setLang(l){if(!LANGS.includes(l))return;LANG=l;S.settings.lang=l;save();applyStaticText();refreshCtrlLabels();renderWeather();
   document.getElementById('playBtn').textContent=t(playing?'play.pause':'play.play');
+  if('mediaSession' in navigator&&navigator.mediaSession.metadata)navigator.mediaSession.metadata=new MediaMetadata({title:'Izayoi',artist:t('brand.sub'),artwork:navigator.mediaSession.metadata.artwork});
   if(ac){renderAreas();renderBench();if(tab==='zukan')renderZukan()}
   if(G.sel)openBug(G.sel)}
 for(const id of['langBtn','langBtnStart'])document.getElementById(id).onclick=()=>setLang(LANG==='ja'?'en':'ja');
