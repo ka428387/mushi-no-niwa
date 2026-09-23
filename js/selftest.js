@@ -37,11 +37,15 @@ if(SELFTEST)addEventListener('load',async()=>{
     const b=S.bugs[0],r=gc.getBoundingClientRect(),p=toPx(b),c=cagePos(),ev=(t,x,y)=>gc.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:r.left+x,clientY:r.top+y,pointerId:7,pointerType:'mouse'}));
     ev('pointerdown',p.x,p.y);ev('pointermove',(p.x+c.x)/2,(p.y+c.y)/2);ev('pointermove',c.x,c.y);ev('pointerup',c.x,c.y);await wait(100);
     return (!b.garden&&!G.voices.has(b.id))||'控えに移らなかった'});
-  await check('動画：庭を録ると、音つきの動画ができ、縦長のキャンバスも片づく',async()=>{
+  await check('動画：声の切れ目で録り始めて止め、音つきの動画ができ、縦長のキャンバスも片づく',async()=>{
     if(!REC_TYPE)return '録画に対応していない';S.bugs.forEach(b=>b.garden=true);syncGarden();
-    const n0=document.querySelectorAll('canvas').length,blob=await startRec(2);
+    const n0=document.querySelectorAll('canvas').length,p=startRec(1.5,2.5),ok0=await until(()=>REC&&REC.started,2600);
+    const t0=REC&&REC.t0,blob=await p,len=ac.currentTime-t0; /* 録り始め→止め終わりまで（最後のフェード込み） */
     const au=recDest.stream.getAudioTracks().length,left=document.querySelectorAll('canvas').length-n0;
-    return (blob.size>10000&&/^video\//.test(blob.type)&&au>0&&left===0&&!REC)||`大きさ${blob.size}・種類${blob.type}・音${au}・残ったキャンバス${left}`});
+    return (ok0&&blob.size>10000&&/^video\//.test(blob.type)&&au>0&&left===0&&!REC&&len>=1.4&&len<=2.9)||`始まり${ok0}・長さ${len.toFixed(2)}秒・大きさ${blob.size}・種類${blob.type}・音${au}・残ったキャンバス${left}`});
+  await check('動画：録画中に押すと中止でき、次の録画もできる',async()=>{
+    if(!REC_TYPE)return '録画に対応していない';let err='';const p=startRec(3,4).catch(e=>{err=e.message});await wait(400);stopRec(true);await p;
+    const blob=await startRec(1,1.5);return (err==='cancelled'&&blob.size>0&&!REC)||`中止:${err}・次の録画${blob.size}`});
   await check('図鑑：「声を聞く」の間は庭と響きが小さくなり、終わると戻る',async()=>{
     S.bugs.forEach(b=>b.garden=true);syncGarden();show('zukan');await wait(300);const btn=document.querySelector('.card .btn');if(!btn)return '声を聞くボタンがない';btn.click();await wait(400);
     const during=[gardenBus.gain.value,revOut.gain.value];if(!preview||during.some(v=>v>.1))return '小さくならない: '+during.map(v=>v.toFixed(2));

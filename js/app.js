@@ -339,29 +339,44 @@ function renderBench(){const el=document.getElementById('bench');const list=S.bu
     const fr=document.createElement('button');fr.className='btn warn';fr.textContent=t('bench.release');fr.onclick=()=>armButton(fr,t('bench.again'),()=>release(b));r.appendChild(fr);
     el.appendChild(r);requestAnimationFrame(()=>thumb(cv,b.sp,0))}}
 
-// ───────── 庭を15秒の縦長動画にする（SNSでシェア） ─────────
+// ───────── 庭を8〜10秒の縦長動画にする（SNSでシェア） ─────────
 // 画面には出さない縦長のキャンバスに庭を描き直し、スピーカーへ出る直前の音と合わせて録る。
+// SNSではループ再生されるので、声の切れ目で録り始めて声の切れ目で止め、頭と終わりを短くフェードしてつなぎ目を目立たせない。
 // 見た目（案内の文字を消す・ロゴや月の名前を重ねる）は art.js の paintGarden（v.share）と paintShareOverlay で
-const REC_SEC=15,REC_W=1080,REC_H=1920,REC_LW=405,REC_LH=720; // REC_LW×REC_LH：描くときの大きさ（スマホの庭と同じくらいの縮尺）
+const REC_MIN=8,REC_MAX=10,REC_FADE=.3,REC_W=1080,REC_H=1920,REC_LW=405,REC_LH=720; // REC_LW×REC_LH：描くときの大きさ（スマホの庭と同じくらいの縮尺）
 const REC_TYPE=(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream&&['video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4;codecs=avc1,mp4a','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(x=>MediaRecorder.isTypeSupported(x)))||null;
 let REC=null,recDest=null,recLevel=null;
 function drawRecFrame(now){const r=REC;if(now-r.last<30)return;r.last=now; // 30コマ/秒で十分
   const c=r.c;c.setTransform(REC_W/REC_LW,0,0,REC_H/REC_LH,0,0);
   const v=gardenScene(REC_LW,REC_LH,clamp(artGroundY(GARDEN_ART,GARDEN_GROUND,REC_LW,REC_LH,artPosX()),16,REC_LH*.6),false);v.share=true;
   paintGarden(c,REC_LW,REC_LH,now,v);
-  if(typeof paintShareOverlay==='function')paintShareOverlay(c,REC_LW,REC_LH,now,{moon:v.moon,progress:clamp((ac.currentTime-r.t0)/r.sec,0,1)})}
-function startRec(sec=REC_SEC){return new Promise((resolve,reject)=>{
+  if(typeof paintShareOverlay==='function')paintShareOverlay(c,REC_LW,REC_LH,now,{moon:v.moon,progress:r.started?clamp((ac.currentTime-r.t0)/REC_MAX,0,1):0})}
+// いま鳴いている（またはすぐ鳴く・鳴き終えたばかりの）虫の数。コロコロの粒と粒の間のような、ひと鳴きの中の短いすき間は「鳴いている」に数える
+function recBusy(r,now){let n=0;for(const[id,v]of G.voices){if(v.marks.some(m=>m[0]<=now&&m[1]>=now))r.lastOn.set(id,now);
+  if(v.marks.some(m=>m[0]<now+.2&&m[1]>now)||now-(r.lastOn.get(id)??-9)<.12)n++}r.samples.push(n);return n}
+// 虫の多い庭では完全な静けさは来ないので、「その庭でいちばん静かな2割（q=.2）くらいの瞬間」を切れ目とみなす
+const recQuiet=(r,n,q)=>{const a=r.samples.slice().sort((x,y)=>x-y);return n<=a[Math.floor(q*(a.length-1))]};
+function startRec(min=REC_MIN,max=REC_MAX){return new Promise((resolve,reject)=>{
   const cv=document.createElement('canvas');cv.width=REC_W;cv.height=REC_H;
   cv.style.cssText='position:fixed;left:-10000px;top:0;width:2px;height:2px;pointer-events:none';document.body.appendChild(cv); // ページに置かないと録れないブラウザがある
   if(!recDest){recDest=ac.createMediaStreamDestination();recLevel=ac.createGain();outNode.connect(recLevel);recLevel.connect(recDest)}
-  recLevel.gain.value=clamp(.8/Math.max(S.settings.vol,.05),1,4); // 音量つまみを下げていても、動画はふつうの大きさで
-  REC={c:cv.getContext('2d'),last:0,t0:ac.currentTime,sec,chunks:[],cancelled:false};drawRecFrame(performance.now());
+  const lv=clamp(.8/Math.max(S.settings.vol,.05),1,4); // 音量つまみを下げていても、動画はふつうの大きさで
+  recLevel.gain.cancelScheduledValues(0);recLevel.gain.value=0;
+  const r=REC={c:cv.getContext('2d'),last:0,t0:0,started:false,ending:false,chunks:[],cancelled:false,lastOn:new Map(),samples:[]};drawRecFrame(performance.now());
   const vt=cv.captureStream(30).getVideoTracks(),mr=new MediaRecorder(new MediaStream([...vt,...recDest.stream.getAudioTracks()]),{mimeType:REC_TYPE,videoBitsPerSecond:6e6,audioBitsPerSecond:128e3});
-  REC.mr=mr;mr.ondataavailable=e=>{if(e.data&&e.data.size)REC.chunks.push(e.data)};
-  mr.onstop=()=>{const r=REC;REC=null;cv.remove();vt.forEach(k=>k.stop());
+  r.mr=mr;mr.ondataavailable=e=>{if(e.data&&e.data.size)r.chunks.push(e.data)};
+  r.done=()=>{if(REC===r)REC=null;clearInterval(r.iv);cv.remove();vt.forEach(k=>k.stop());
     if(r.cancelled)reject(new Error('cancelled'));else resolve(new Blob(r.chunks,{type:REC_TYPE.split(';')[0]}))};
-  mr.start(1000);REC.timer=setTimeout(()=>{if(mr.state!=='inactive')mr.stop()},sec*1000)})}
-function stopRec(cancel){if(!REC)return;REC.cancelled=!!cancel;clearTimeout(REC.timer);if(REC.mr.state!=='inactive')REC.mr.stop()}
+  mr.onstop=r.done;const w0=ac.currentTime;
+  r.iv=setInterval(()=>{const now=ac.currentTime,n=recBusy(r,now);
+    if(!r.started){ // 声の切れ目を待って録り始める（待つのは長くても2.5秒）
+      if(n===0||(now-w0>1&&recQuiet(r,n,.15))||now-w0>2.5){r.started=true;r.t0=now;mr.start(1000);recLevel.gain.setValueAtTime(0,now);recLevel.gain.linearRampToValueAtTime(lv,now+REC_FADE)}return}
+    const len=now-r.t0+REC_FADE; // いまフェードを始めたときの動画の長さ
+    if(len>=max||len>=min&&(n===0||recQuiet(r,n,len<min+1?.15:.35)))stopRec(false)},40)})} // 10秒に近づくほど少し妥協する
+function stopRec(cancel){const r=REC;if(!r||r.ending)return;r.ending=true;r.cancelled=!!cancel;clearInterval(r.iv);
+  const fin=()=>{if(r.mr.state!=='inactive')r.mr.stop();else r.done()};
+  if(cancel||!r.started){fin();return}
+  const now=ac.currentTime;recLevel.gain.cancelScheduledValues(now);recLevel.gain.setValueAtTime(recLevel.gain.value,now);recLevel.gain.linearRampToValueAtTime(0,now+REC_FADE);setTimeout(fin,REC_FADE*1000+60)}
 const blobB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(b)});
 // iPhoneアプリ：一時フォルダに書き出して共有メニューへ（写真に保存・インスタ・X・LINE など）。ウェブ：スマホは共有、パソコンはダウンロード
 async function shareVideo(blob){
@@ -380,7 +395,7 @@ async function shareVideo(blob){
 {const btn=document.getElementById('recBtn');if(!REC_TYPE)btn.hidden=true; // 録画できないブラウザではボタンを出さない
   btn.onclick=async()=>{if(REC){stopRec(true);return}
     if(!ac)return;if(!inGarden().length){toast(t('toast.noGarden'));return}
-    if(!playing)togglePlay();btn.classList.add('on');
+    if(!playing)togglePlay();btn.classList.add('on');btn.textContent=t('rec.recording');
     try{const blob=await startRec();btn.textContent=t('rec.preparing');await shareVideo(blob)}
     catch(e){toast(t(e.message==='cancelled'?'rec.cancelled':'rec.failed'));if(e.message!=='cancelled')console.error(e)}
     finally{btn.textContent=t('rec.btn');btn.classList.remove('on')}}}
@@ -460,7 +475,7 @@ function tick(){if(!ac||!playing)return;const h=ac.currentTime+.35;
 let lastF=performance.now();
 function loop(now){const dt=Math.min(.1,(now-lastF)/1000);lastF=now;
   if(tab==='field'&&F.active)drawField(now,dt);if(tab==='garden')drawGarden(now);
-  if(REC){drawRecFrame(now);document.getElementById('recBtn').textContent=t('rec.recording',{s:Math.max(1,Math.ceil(REC.sec-(ac.currentTime-REC.t0)))})}
+  if(REC)drawRecFrame(now);
   const tl=document.getElementById('timerL');tl.textContent=timerEnd?t('timer.left',{m:Math.ceil((timerEnd-Date.now())/60000)}):'';
   requestAnimationFrame(loop)}
 
