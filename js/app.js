@@ -98,7 +98,7 @@ function initAudio(){
   rainLvl=RAIN_T[S.settings.weather];
   setInterval(tick,60);
 }
-function setSoft(v,now){const t=now||0;lowpass.frequency.setTargetAtTime(9500-5000*v,t,.05);shelf.gain.setTargetAtTime(-2-9*v,t,.05)}
+function setSoft(v,now){const t=now||0;lowpass.frequency.setTargetAtTime(8500-4500*v,t,.05);shelf.gain.setTargetAtTime(-4-9*v,t,.05)}
 // ───────── 雨 ─────────
 const RAIN_T={clear:0,light:.45};
 let rainLvl=0,nextDrop=0,nextDrip=0,dripUntil=0;

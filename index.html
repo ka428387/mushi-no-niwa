@@ -47,24 +47,24 @@
   <section id="field">
     <div class="stage" id="fstage"><canvas id="fc"></canvas><div class="stat" id="fstat"></div></div>
     <div class="chips" id="areas"></div>
-    <p class="hint" data-i18n-html="field.hint">灯りを動かして声のする方へ。<b>急いで近づくと鳴きやみます</b>。灯りの中で虫が光ったら、そこをタップして網をふります。<br>パソコンはマウスで灯りを動かしてクリック。スマホはドラッグで灯りを動かし、灯りのそばをタップ。</p>
+    <p class="hint" data-i18n-html="field.hint">灯りを動かして声のする方へ。<b>急いで近づくと鳴きやみます</b>。虫が光ったら、タップで網をふります。</p>
   </section>
 
   <section id="garden">
     <div class="stage" id="gstage"><canvas id="gc"></canvas><div class="stat" id="gstat"></div><div class="empty" id="gempty" data-i18n-html="garden.empty">まだ庭に虫がいません。<br>「探す」で虫をつかまえてきましょう。</div></div>
-    <p class="hint" data-i18n-html="garden.hint">虫をドラッグして置き場所を変えられます。<b>左右</b>で聞こえる方向が、<b>奥／手前</b>で遠さと響きが変わります。同じ種類の虫を近くに置くと、<b>交互に鳴き交わします</b>。ドラッグ中に<b>中央下の虫かご</b>へ運ぶと、控えに移せます。虫をタップすると詳しく見られます。</p>
+    <p class="hint" data-i18n-html="garden.hint">虫をドラッグすると、聞こえる方向と遠さが変わります。同じ種類を近くに置くと<b>交互に鳴き交わします</b>。</p>
     <div class="ctrls">
-      <div class="wx"><span data-i18n="wx.title">天気</span><div class="chips" id="weather"></div><div style="font-size:11.5px" data-i18n="wx.note">小雨にすると、虫の声に雨音が重なります。</div></div>
+      <div class="wx"><span data-i18n="wx.title">天気</span><div class="chips" id="weather"></div></div>
       <label><span data-i18n="ctl.temp">気温</span><b id="tempL"></b><input type="range" id="temp" min="14" max="30" step="1"></label>
       <label><span data-i18n="ctl.depth">夜の深さ（響き）</span><b id="depthL"></b><input type="range" id="depth" min="0" max="1.4" step="0.05"></label>
       <div class="note" data-i18n="ctl.tempNote">秋の虫は気温が高いほど速く、低いほどゆっくり鳴きます。</div>
-      <label><span data-i18n="ctl.wind">風の音</span><b id="windL"></b><input type="range" id="wind" min="0" max="1" step="0.05"></label>
       <label><span data-i18n="ctl.soft">音のやわらかさ</span><b id="softL"></b><input type="range" id="soft" min="0" max="1" step="0.05"></label>
+      <label><span data-i18n="ctl.wind">風の音</span><b id="windL"></b><input type="range" id="wind" min="0" max="1" step="0.05"></label>
       <label><span data-i18n="ctl.vol">音量</span><b id="volL"></b><input type="range" id="vol" min="0" max="1" step="0.05"></label>
       <label><span data-i18n="ctl.timer">おやすみタイマー</span><select id="timer"><option value="0">なし</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option><option value="90">90分</option></select></label>
       <label>&nbsp;<b id="timerL" style="margin:0"></b></label>
     </div>
-    <div class="gclear"><button class="btn" id="clearGarden" data-i18n="btn.clearGarden">庭の虫をぜんぶ控えへ</button><button class="btn warn" id="freeAll" data-i18n="btn.freeAll">虫をぜんぶ逃がす</button></div>
+    <div class="gclear"><button class="btn" id="clearGarden" data-i18n="btn.clearGarden">庭の虫をすべて控えへ</button><button class="btn warn" id="freeAll" data-i18n="btn.freeAll">虫をすべて逃がす</button></div>
     <h2 id="benchH">控えの虫かご</h2>
     <div class="list" id="bench"></div>
   </section>
