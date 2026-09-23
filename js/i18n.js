@@ -42,6 +42,8 @@ ja:{
   'zukan.listen':'声を聞く','zukan.listening':'聞いています…','zukan.caught':'つかまえた数 {n}',
   'zukan.unknown':'まだ出会っていない虫。{areas}で声がするらしい。','zukan.areaSep':'、',
   'zukan.stat':'見つけた種類 {found}／{total}　・　つかまえた虫 {n}匹（庭 {g}）',
+  'rec.btn':'15秒の動画にする','rec.recording':'録画中… あと{s}秒（押すと中止）','rec.preparing':'動画を用意しています…',
+  'rec.cancelled':'録画をやめました','rec.failed':'動画を作れませんでした','rec.saved':'動画を保存しました',
 },
 en:{
   'brand.sub':'A Garden of Insect Songs',
@@ -81,6 +83,8 @@ en:{
   'zukan.listen':'Listen','zukan.listening':'Listening…','zukan.caught':'Caught: {n}',
   'zukan.unknown':'An insect you have not met yet. Its voice is heard in {areas}.','zukan.areaSep':', ',
   'zukan.stat':'Species found {found}/{total} · Insects {n} (garden {g})',
+  'rec.btn':'Make a 15-second video','rec.recording':'Recording… {s}s left (tap to cancel)','rec.preparing':'Preparing your video…',
+  'rec.cancelled':'Recording cancelled','rec.failed':'Couldn’t make the video','rec.saved':'Video saved',
 },
 };
 

@@ -70,7 +70,7 @@ const inGarden=()=>S.bugs.filter(b=>b.garden);
 function traits(b){return[t(b.pitch<.98?'trait.low':b.pitch>1.02?'trait.high':'trait.mid'),t(b.rate>1.04?'trait.fast':b.rate<.96?'trait.slow':'trait.steady')].join(t('trait.sep'))}
 
 // ───────── 音 ─────────
-let revOut,gardenRev,rainRev,rainBus,rainHiss,lowpass,shelf,ac,master,reverbIn,fieldBus,gardenBus,previewBus,noiseBuf,windGain,playing=true;
+let revOut,gardenRev,rainRev,rainBus,rainHiss,lowpass,shelf,ac,master,outNode,reverbIn,fieldBus,gardenBus,previewBus,noiseBuf,windGain,playing=true;
 function makeIR(sec){const n=ac.sampleRate*sec,b=ac.createBuffer(2,n,ac.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3.2)}return b}
 function initAudio(){
   const AC=window.AudioContext||window.webkitAudioContext;ac=new AC();
@@ -79,7 +79,7 @@ function initAudio(){
   lowpass=ac.createBiquadFilter();lowpass.type='lowpass';lowpass.Q.value=.5;
   shelf=ac.createBiquadFilter();shelf.type='highshelf';shelf.frequency.value=3500;setSoft(S.settings.soft);
   const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3;
-  master.connect(lowpass);lowpass.connect(shelf);shelf.connect(comp);comp.connect(ac.destination);
+  master.connect(lowpass);lowpass.connect(shelf);shelf.connect(comp);comp.connect(ac.destination);outNode=comp; /* スピーカーへ出る直前。動画の録音はここから分けて取る */
   const rev=ac.createConvolver();rev.buffer=makeIR(3.2);reverbIn=ac.createGain();reverbIn.gain.value=S.settings.depth;reverbIn.connect(rev);revOut=ac.createGain();rev.connect(revOut);revOut.connect(master);
   gardenRev=ac.createGain();gardenRev.connect(reverbIn);rainRev=ac.createGain();rainRev.connect(reverbIn); // 庭の虫・雨の響きは、図鑑の試聴中に小さくできるよう別の道を通す
   fieldBus=ac.createGain();gardenBus=ac.createGain();previewBus=ac.createGain();[fieldBus,gardenBus,previewBus].forEach(b=>b.connect(master));
@@ -287,19 +287,23 @@ gc.addEventListener('pointercancel',()=>{G.drag=null});
 // ドラッグ中だけ中央下に出る「控えの虫かご」
 const cagePos=()=>({x:G.W/2,y:G.H-46});
 function overCage(d){if(d.px==null)return false;const c=cagePos();return Math.hypot(d.px-c.x,d.py-c.y)<46}
-function drawGarden(now){
-  const{c,W,H}=fitCanvas(gc);G.W=W;G.H=H;const top=gTop();
+// 庭の1コマ分の中身。画面の庭と、動画用の縦長の庭で共通（W,H,top はそれぞれの大きさ）
+function gardenScene(W,H,top,dragging){
+  const pos=b=>({x:24+b.x*(W-48),y:top+b.y*(H-top-24)});
   const rl=ac?rainLvl:RAIN_T[S.settings.weather];
   const at=ac?ac.currentTime:0;const bugs=inGarden().slice().sort((a,b)=>a.y-b.y);
   const sing=new Map(bugs.map(b=>{const v=G.voices.get(b.id);return[b.id,!!(v&&playing&&v.singing(at))]}));
   const pairs=[];
   for(let i=0;i<bugs.length;i++)for(let j=i+1;j<bugs.length;j++){const a=bugs[i],b=bugs[j];if(a.sp!==b.sp||a.mute||b.mute||pairDist(a,b)>=PAIR_R)continue;
-    pairs.push({p:toPx(a),q:toPx(b),on:sing.get(a.id)||sing.get(b.id)})}
+    pairs.push({p:pos(a),q:pos(b),on:sing.get(a.id)||sing.get(b.id)})}
+  return{top,rain:rl,moon:moonInfo(),dragging,pairs,cage:null,
+    bugs:bugs.map(b=>{const q=pos(b);return{key:b.sp,x:q.x,y:q.y,ny:b.y,mute:b.mute,sing:sing.get(b.id),name:b.name}})}}
+function drawGarden(now){
+  const{c,W,H}=fitCanvas(gc);G.W=W;G.H=H;
   const d=G.drag,dragging=!!(d&&d.moved);
-  // 描く（art.js）
-  paintGarden(c,W,H,now,{top,rain:rl,moon:moonInfo(),dragging,pairs,
-    bugs:bugs.map(b=>{const q=toPx(b);return{key:b.sp,x:q.x,y:q.y,ny:b.y,mute:b.mute,sing:sing.get(b.id),name:b.name}}),
-    cage:dragging?{...cagePos(),on:overCage(d)}:null});
+  const v=gardenScene(W,H,gTop(),dragging);if(dragging)v.cage={...cagePos(),on:overCage(d)};
+  paintGarden(c,W,H,now,v); // 描く（art.js）
+  const bugs=v.bugs;
   document.getElementById('gempty').style.display=bugs.length?'none':'flex';
   document.getElementById('gstat').textContent=bugs.length?t('garden.stat',{n:bugs.length,max:GARDEN_MAX})+(S.settings.weather==='light'?t('garden.statRain'):''):'';
 }
@@ -334,6 +338,52 @@ function renderBench(){const el=document.getElementById('bench');const list=S.bu
     const go=document.createElement('button');go.className='btn pri';go.textContent=t('bench.toGarden');go.disabled=full;go.onclick=()=>{b.garden=true;Object.assign(b,freeSpot());save();syncGarden();renderBench()};r.appendChild(go);
     const fr=document.createElement('button');fr.className='btn warn';fr.textContent=t('bench.release');fr.onclick=()=>armButton(fr,t('bench.again'),()=>release(b));r.appendChild(fr);
     el.appendChild(r);requestAnimationFrame(()=>thumb(cv,b.sp,0))}}
+
+// ───────── 庭を15秒の縦長動画にする（SNSでシェア） ─────────
+// 画面には出さない縦長のキャンバスに庭を描き直し、スピーカーへ出る直前の音と合わせて録る。
+// 見た目（案内の文字を消す・ロゴや月の名前を重ねる）は art.js の paintGarden（v.share）と paintShareOverlay で
+const REC_SEC=15,REC_W=1080,REC_H=1920,REC_LW=405,REC_LH=720; // REC_LW×REC_LH：描くときの大きさ（スマホの庭と同じくらいの縮尺）
+const REC_TYPE=(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream&&['video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4;codecs=avc1,mp4a','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(x=>MediaRecorder.isTypeSupported(x)))||null;
+let REC=null,recDest=null,recLevel=null;
+function drawRecFrame(now){const r=REC;if(now-r.last<30)return;r.last=now; // 30コマ/秒で十分
+  const c=r.c;c.setTransform(REC_W/REC_LW,0,0,REC_H/REC_LH,0,0);
+  const v=gardenScene(REC_LW,REC_LH,clamp(artGroundY(GARDEN_ART,GARDEN_GROUND,REC_LW,REC_LH,artPosX()),16,REC_LH*.6),false);v.share=true;
+  paintGarden(c,REC_LW,REC_LH,now,v);
+  if(typeof paintShareOverlay==='function')paintShareOverlay(c,REC_LW,REC_LH,now,{moon:v.moon,progress:clamp((ac.currentTime-r.t0)/r.sec,0,1)})}
+function startRec(sec=REC_SEC){return new Promise((resolve,reject)=>{
+  const cv=document.createElement('canvas');cv.width=REC_W;cv.height=REC_H;
+  cv.style.cssText='position:fixed;left:-10000px;top:0;width:2px;height:2px;pointer-events:none';document.body.appendChild(cv); // ページに置かないと録れないブラウザがある
+  if(!recDest){recDest=ac.createMediaStreamDestination();recLevel=ac.createGain();outNode.connect(recLevel);recLevel.connect(recDest)}
+  recLevel.gain.value=clamp(.8/Math.max(S.settings.vol,.05),1,4); // 音量つまみを下げていても、動画はふつうの大きさで
+  REC={c:cv.getContext('2d'),last:0,t0:ac.currentTime,sec,chunks:[],cancelled:false};drawRecFrame(performance.now());
+  const vt=cv.captureStream(30).getVideoTracks(),mr=new MediaRecorder(new MediaStream([...vt,...recDest.stream.getAudioTracks()]),{mimeType:REC_TYPE,videoBitsPerSecond:6e6,audioBitsPerSecond:128e3});
+  REC.mr=mr;mr.ondataavailable=e=>{if(e.data&&e.data.size)REC.chunks.push(e.data)};
+  mr.onstop=()=>{const r=REC;REC=null;cv.remove();vt.forEach(k=>k.stop());
+    if(r.cancelled)reject(new Error('cancelled'));else resolve(new Blob(r.chunks,{type:REC_TYPE.split(';')[0]}))};
+  mr.start(1000);REC.timer=setTimeout(()=>{if(mr.state!=='inactive')mr.stop()},sec*1000)})}
+function stopRec(cancel){if(!REC)return;REC.cancelled=!!cancel;clearTimeout(REC.timer);if(REC.mr.state!=='inactive')REC.mr.stop()}
+const blobB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(b)});
+// iPhoneアプリ：一時フォルダに書き出して共有メニューへ（写真に保存・インスタ・X・LINE など）。ウェブ：スマホは共有、パソコンはダウンロード
+async function shareVideo(blob){
+  const d=new Date(),p=n=>String(n).padStart(2,'0'),name=`izayoi-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.${blob.type.includes('mp4')?'mp4':'webm'}`;
+  const cap=window.Capacitor,has=n=>!!(cap&&cap.nativePromise&&(cap.PluginHeaders||[]).some(h=>h.name===n));
+  if(has('Filesystem')&&has('Share')){const fs=(m,o)=>cap.nativePromise('Filesystem',m,{directory:'CACHE',...o}); // アプリの箱には plugin の JS を入れていないので、直接呼ぶ
+    try{for(const f of(await fs('readdir',{path:''})).files)if(/^izayoi-.*\.(mp4|webm)$/.test(f.name))await fs('deleteFile',{path:f.name})}catch(e){} // 前に作った動画は片づける
+    const CH=3*1024*1024; // 3の倍数で区切ると、つなげても正しい base64 になる
+    for(let i=0;i<blob.size;i+=CH)await fs(i?'appendFile':'writeFile',{path:name,data:await blobB64(blob.slice(i,i+CH))});
+    const{uri}=await fs('getUri',{path:name});
+    try{await cap.nativePromise('Share','share',{files:[uri]})}catch(e){} // 共有メニューを閉じたときもここに来る
+    return}
+  const file=new File([blob],name,{type:blob.type});
+  if(matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]})}catch(e){}return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),10000);toast(t('rec.saved'))}
+{const btn=document.getElementById('recBtn');if(!REC_TYPE)btn.hidden=true; // 録画できないブラウザではボタンを出さない
+  btn.onclick=async()=>{if(REC){stopRec(true);return}
+    if(!ac)return;if(!inGarden().length){toast(t('toast.noGarden'));return}
+    if(!playing)togglePlay();btn.classList.add('on');
+    try{const blob=await startRec();btn.textContent=t('rec.preparing');await shareVideo(blob)}
+    catch(e){toast(t(e.message==='cancelled'?'rec.cancelled':'rec.failed'));if(e.message!=='cancelled')console.error(e)}
+    finally{btn.textContent=t('rec.btn');btn.classList.remove('on')}}}
 
 // ───────── 設定 ─────────
 const CTRL_FMT={};
@@ -393,7 +443,8 @@ function renderZukan(){const el=document.getElementById('zgrid');el.innerHTML=''
 
 // ───────── 画面切り替えとループ ─────────
 let tab='';
-function show(t){if(t===tab)return;const prev=tab;tab=t;
+function show(t){if(t===tab)return;const prev=tab;tab=t;if(REC&&t!=='garden')stopRec(true); // 庭以外では庭の虫が鳴かないので、録画は続けない
+
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));
   if(!ac)return;
   rainBus.gain.setTargetAtTime(t==='field'?0:1,ac.currentTime,.3);
@@ -409,11 +460,12 @@ function tick(){if(!ac||!playing)return;const h=ac.currentTime+.35;
 let lastF=performance.now();
 function loop(now){const dt=Math.min(.1,(now-lastF)/1000);lastF=now;
   if(tab==='field'&&F.active)drawField(now,dt);if(tab==='garden')drawGarden(now);
+  if(REC){drawRecFrame(now);document.getElementById('recBtn').textContent=t('rec.recording',{s:Math.max(1,Math.ceil(REC.sec-(ac.currentTime-REC.t0)))})}
   const tl=document.getElementById('timerL');tl.textContent=timerEnd?t('timer.left',{m:Math.ceil((timerEnd-Date.now())/60000)}):'';
   requestAnimationFrame(loop)}
 
 document.getElementById('startBtn').onclick=()=>{initAudio();document.getElementById('start').style.display='none';renderAreas();
   const t=inGarden().length?'garden':'field';tab='';show(t);requestAnimationFrame(loop)};
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ac&&playing&&ac.state!=='running')ac.resume()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&REC)stopRec(true);if(!document.hidden&&ac&&playing&&ac.state!=='running')ac.resume()});
 document.addEventListener('pointerdown',()=>{if(ac&&playing&&ac.state==='suspended')ac.resume()});
 if(!SELFTEST&&'serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));

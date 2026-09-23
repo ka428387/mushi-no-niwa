@@ -37,6 +37,11 @@ if(SELFTEST)addEventListener('load',async()=>{
     const b=S.bugs[0],r=gc.getBoundingClientRect(),p=toPx(b),c=cagePos(),ev=(t,x,y)=>gc.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:r.left+x,clientY:r.top+y,pointerId:7,pointerType:'mouse'}));
     ev('pointerdown',p.x,p.y);ev('pointermove',(p.x+c.x)/2,(p.y+c.y)/2);ev('pointermove',c.x,c.y);ev('pointerup',c.x,c.y);await wait(100);
     return (!b.garden&&!G.voices.has(b.id))||'控えに移らなかった'});
+  await check('動画：庭を録ると、音つきの動画ができ、縦長のキャンバスも片づく',async()=>{
+    if(!REC_TYPE)return '録画に対応していない';S.bugs.forEach(b=>b.garden=true);syncGarden();
+    const n0=document.querySelectorAll('canvas').length,blob=await startRec(2);
+    const au=recDest.stream.getAudioTracks().length,left=document.querySelectorAll('canvas').length-n0;
+    return (blob.size>10000&&/^video\//.test(blob.type)&&au>0&&left===0&&!REC)||`大きさ${blob.size}・種類${blob.type}・音${au}・残ったキャンバス${left}`});
   await check('図鑑：「声を聞く」の間は庭と響きが小さくなり、終わると戻る',async()=>{
     S.bugs.forEach(b=>b.garden=true);syncGarden();show('zukan');await wait(300);const btn=document.querySelector('.card .btn');if(!btn)return '声を聞くボタンがない';btn.click();await wait(400);
     const during=[gardenBus.gain.value,revOut.gain.value];if(!preview||during.some(v=>v>.1))return '小さくならない: '+during.map(v=>v.toFixed(2));
