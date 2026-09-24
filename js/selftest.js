@@ -43,6 +43,10 @@ if(SELFTEST)addEventListener('load',async()=>{
     const r0=REC,blob=await p,len=ac.currentTime-r0.t0; /* 録り始め→止め終わりまで（最後のフェード込み） */
     const au=recDest.stream.getAudioTracks().length,left=document.querySelectorAll('canvas').length-n0;
     return (ok0&&blob.size>10000&&/^video\//.test(blob.type)&&au>0&&left===0&&!REC&&len>=1.4&&len<=2.9)||`始まり${ok0}・長さ${len.toFixed(2)}秒・大きさ${blob.size}・種類${blob.type}・音${au}・残ったキャンバス${left}`});
+  await check('動画：ボタンに渡す進み具合が、録り始めは0、途中で増え、止めると1になる',async()=>{
+    if(!REC_TYPE)return '録画に対応していない';const p=startRec(1.5,2.5),a=recProgress();await until(()=>REC&&REC.started,2600);await wait(700);
+    const b=recProgress(),r0=REC;await until(()=>r0.ending,3000);const c=recProgress();await p;
+    return (a===0&&b>.2&&b<.85&&c===1&&recProgress()===0)||`始め${a}・途中${b.toFixed(2)}・止め${c}・後${recProgress()}`});
   await check('動画：録画中に押すと中止でき、次の録画もできる',async()=>{
     if(!REC_TYPE)return '録画に対応していない';let err='';const p=startRec(3,4).catch(e=>{err=e.message});await wait(400);stopRec(true);await p;
     const blob=await startRec(1,1.5);return (err==='cancelled'&&blob.size>0&&!REC)||`中止:${err}・次の録画${blob.size}`});

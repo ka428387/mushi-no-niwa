@@ -362,7 +362,7 @@ function startRec(min=REC_MIN,max=REC_MAX){return new Promise((resolve,reject)=>
   if(!recDest){recDest=ac.createMediaStreamDestination();recLevel=ac.createGain();outNode.connect(recLevel);recLevel.connect(recDest)}
   const lv=clamp(.8/Math.max(S.settings.vol,.05),1,4); // 音量つまみを下げていても、動画はふつうの大きさで
   recLevel.gain.cancelScheduledValues(0);recLevel.gain.value=0;
-  const r=REC={c:cv.getContext('2d'),last:0,t0:0,started:false,ending:false,chunks:[],cancelled:false,lastOn:new Map(),samples:[]};drawRecFrame(performance.now());
+  const r=REC={c:cv.getContext('2d'),last:0,t0:0,started:false,ending:false,chunks:[],cancelled:false,lastOn:new Map(),samples:[],min,max};drawRecFrame(performance.now());
   const vt=cv.captureStream(30).getVideoTracks(),stream=new MediaStream([...vt,...recDest.stream.getAudioTracks()]);
   r.done=()=>{if(r.fin)return;r.fin=true;if(REC===r)REC=null;clearInterval(r.iv);cv.remove();vt.forEach(k=>k.stop());const blob=new Blob(r.chunks,{type:REC_TYPE.split(';')[0]});
     if(r.cancelled)reject(new Error('cancelled'));else if(!blob.size)reject(new Error('empty'));else resolve(blob)};
@@ -375,6 +375,9 @@ function startRec(min=REC_MIN,max=REC_MAX){return new Promise((resolve,reject)=>
       if(n===0||(now-w0>1&&recQuiet(r,n,.15))||now-w0>2.5){r.started=true;begin(now)}return}
     const len=now-r.t0+REC_FADE; // いまフェードを始めたときの動画の長さ
     if(len>=max||len>=min&&(n===0||recQuiet(r,n,len<min+1?.15:.35)))stopRec(false)},40)})} // 10秒に近づくほど少し妥協する
+// ボタンに出す進み具合 0〜1（CSS の --rec）。止める時刻は声の切れ目しだいなので、8秒で85%まで進め、残りは10秒に向けてゆっくり、止めた瞬間に100%
+function recProgress(){const r=REC;if(!r||!r.started)return 0;if(r.ending)return 1;const e=ac.currentTime-r.t0+REC_FADE;
+  return e<r.min?.85*e/r.min:Math.min(.99,.85+.15*(e-r.min)/(r.max-r.min))}
 function stopRec(cancel){const r=REC;if(!r||r.ending)return;r.ending=true;r.cancelled=!!cancel;clearInterval(r.iv);
   const fin=()=>{if(r.mr.state!=='inactive'){r.mr.stop();setTimeout(r.done,3000)}else r.done()}; // 止まった知らせが来なくても、3秒で必ず終える
   if(cancel||!r.started){fin();return}
@@ -401,7 +404,7 @@ async function shareVideo(blob){
     try{let blob;for(let i=0;;i++){try{blob=await startRec();break}catch(e){if(e.message!=='empty'||i>=2)throw e}} // iPhone では録画機がたまに何も書き出さないので、空なら録り直す（2回まで）
       btn.textContent=t('rec.preparing');await shareVideo(blob)}
     catch(e){toast(t(e.message==='cancelled'?'rec.cancelled':'rec.failed'));if(e.message!=='cancelled')console.error(e)} // 中身が空（empty）のときも「作れませんでした」
-    finally{btn.textContent=t('rec.btn');btn.classList.remove('on')}}}
+    finally{btn.textContent=t('rec.btn');btn.classList.remove('on');btn.style.removeProperty('--rec')}}}
 
 // ───────── 設定 ─────────
 const CTRL_FMT={};
@@ -478,7 +481,7 @@ function tick(){if(!ac||!playing)return;const h=ac.currentTime+.35;
 let lastF=performance.now();
 function loop(now){const dt=Math.min(.1,(now-lastF)/1000);lastF=now;
   if(tab==='field'&&F.active)drawField(now,dt);if(tab==='garden')drawGarden(now);
-  if(REC)drawRecFrame(now);
+  if(REC){drawRecFrame(now);document.getElementById('recBtn').style.setProperty('--rec',recProgress().toFixed(3))}
   const tl=document.getElementById('timerL');tl.textContent=timerEnd?t('timer.left',{m:Math.ceil((timerEnd-Date.now())/60000)}):'';
   requestAnimationFrame(loop)}
 
