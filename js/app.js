@@ -362,23 +362,21 @@ function startRec(min=REC_MIN,max=REC_MAX){return new Promise((resolve,reject)=>
   if(!recDest){recDest=ac.createMediaStreamDestination();recLevel=ac.createGain();outNode.connect(recLevel);recLevel.connect(recDest)}
   const lv=clamp(.8/Math.max(S.settings.vol,.05),1,4); // 音量つまみを下げていても、動画はふつうの大きさで
   recLevel.gain.cancelScheduledValues(0);recLevel.gain.value=0;
-  const r=REC={c:cv.getContext('2d'),last:0,t0:0,started:false,ending:false,chunks:[],cancelled:false,lastOn:new Map(),samples:[],got:false,retries:0};drawRecFrame(performance.now());
+  const r=REC={c:cv.getContext('2d'),last:0,t0:0,started:false,ending:false,chunks:[],cancelled:false,lastOn:new Map(),samples:[]};drawRecFrame(performance.now());
   const vt=cv.captureStream(30).getVideoTracks(),stream=new MediaStream([...vt,...recDest.stream.getAudioTracks()]);
-  r.done=()=>{if(REC===r)REC=null;clearInterval(r.iv);cv.remove();vt.forEach(k=>k.stop());const blob=new Blob(r.chunks,{type:REC_TYPE.split(';')[0]});
+  r.done=()=>{if(r.fin)return;r.fin=true;if(REC===r)REC=null;clearInterval(r.iv);cv.remove();vt.forEach(k=>k.stop());const blob=new Blob(r.chunks,{type:REC_TYPE.split(';')[0]});
     if(r.cancelled)reject(new Error('cancelled'));else if(!blob.size)reject(new Error('empty'));else resolve(blob)};
-  // iPhone（WebKit）では、録画機がたまに最初から何も書き出さないことがある。画質の指定はしない（指定すると起きやすかった）
-  const mk=()=>{const m=new MediaRecorder(stream,{mimeType:REC_TYPE});
-    m.ondataavailable=e=>{if(m===r.mr&&e.data&&e.data.size){r.chunks.push(e.data);r.got=true}};m.onstop=()=>{if(m===r.mr)r.done()};return m};
-  const begin=now=>{r.t0=now;r.chunks=[];r.got=false;r.mr.start(1000);recLevel.gain.cancelScheduledValues(now);recLevel.gain.setValueAtTime(0,now);recLevel.gain.linearRampToValueAtTime(lv,now+REC_FADE)};
-  r.mr=mk();const w0=ac.currentTime;
+  // 画質の指定（videoBitsPerSecond など）はしない。iPhone（WebKit）で中身が空になりやすかった
+  const mr=r.mr=new MediaRecorder(stream,{mimeType:REC_TYPE});mr.ondataavailable=e=>{if(e.data&&e.data.size)r.chunks.push(e.data)};mr.onstop=r.done;
+  const begin=now=>{r.t0=now;mr.start(1000);recLevel.gain.cancelScheduledValues(now);recLevel.gain.setValueAtTime(0,now);recLevel.gain.linearRampToValueAtTime(lv,now+REC_FADE)};
+  const w0=ac.currentTime;
   r.iv=setInterval(()=>{const now=ac.currentTime,n=recBusy(r,now);
     if(!r.started){ // 声の切れ目を待って録り始める（待つのは長くても2.5秒）
       if(n===0||(now-w0>1&&recQuiet(r,n,.15))||now-w0>2.5){r.started=true;begin(now)}return}
-    if(!r.got&&now-r.t0>1.6&&r.retries<2){r.retries++;const old=r.mr;r.mr=mk();old.stop();begin(now);return} // 1.6秒たっても中身が来なければ、録画機を作り直してやり直す
     const len=now-r.t0+REC_FADE; // いまフェードを始めたときの動画の長さ
     if(len>=max||len>=min&&(n===0||recQuiet(r,n,len<min+1?.15:.35)))stopRec(false)},40)})} // 10秒に近づくほど少し妥協する
 function stopRec(cancel){const r=REC;if(!r||r.ending)return;r.ending=true;r.cancelled=!!cancel;clearInterval(r.iv);
-  const fin=()=>{if(r.mr.state!=='inactive')r.mr.stop();else r.done()};
+  const fin=()=>{if(r.mr.state!=='inactive'){r.mr.stop();setTimeout(r.done,3000)}else r.done()}; // 止まった知らせが来なくても、3秒で必ず終える
   if(cancel||!r.started){fin();return}
   const now=ac.currentTime;recLevel.gain.cancelScheduledValues(now);recLevel.gain.setValueAtTime(recLevel.gain.value,now);recLevel.gain.linearRampToValueAtTime(0,now+REC_FADE);setTimeout(fin,REC_FADE*1000+60)}
 const blobB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(b)});
@@ -400,7 +398,8 @@ async function shareVideo(blob){
   btn.onclick=async()=>{if(REC){stopRec(true);return}
     if(!ac)return;if(!inGarden().length){toast(t('toast.noGarden'));return}
     if(!playing)togglePlay();btn.classList.add('on');btn.textContent=t('rec.recording');
-    try{const blob=await startRec();btn.textContent=t('rec.preparing');await shareVideo(blob)}
+    try{let blob;for(let i=0;;i++){try{blob=await startRec();break}catch(e){if(e.message!=='empty'||i>=2)throw e}} // iPhone では録画機がたまに何も書き出さないので、空なら録り直す（2回まで）
+      btn.textContent=t('rec.preparing');await shareVideo(blob)}
     catch(e){toast(t(e.message==='cancelled'?'rec.cancelled':'rec.failed'));if(e.message!=='cancelled')console.error(e)} // 中身が空（empty）のときも「作れませんでした」
     finally{btn.textContent=t('rec.btn');btn.classList.remove('on')}}}
 
