@@ -138,7 +138,7 @@ function paintGarden(c,W,H,now,v){
   c.clearRect(0,0,W,H);
   if(GARDEN_ART.complete&&GARDEN_ART.naturalWidth){ // 庭の絵（CSS背景と同じ位置）に今夜の月を重ねる
     // 共有動画はスマホ版と同じ右寄せにして、月を光ごと画面内に収める。
-    const rect=coverRect(GARDEN_ART,W,H,v.share?.65:artPosX(),.5);c.drawImage(GARDEN_ART,rect.x,rect.y,rect.w,rect.h);drawArtMoon(c,GARDEN_ART,rect,ART_MOON.garden,v.moon,rl*.92)}
+    const rect=coverRect(GARDEN_ART,W,H,v.share?(v.sharePosX??.65):artPosX(),.5);c.drawImage(GARDEN_ART,rect.x,rect.y,rect.w,rect.h);drawArtMoon(c,GARDEN_ART,rect,ART_MOON.garden,v.moon,rl*.92)}
   if(!v.share){c.fillStyle='rgba(242,237,223,.62)';c.font='11px sans-serif';c.textAlign='center';c.fillText(t('garden.back'),W/2,top+14);if(!v.dragging)c.fillText(t('garden.front'),W/2,H-8);
     c.textAlign='left';c.fillText(t('garden.left'),8,(top+H)/2);c.textAlign='right';c.fillText(t('garden.right'),W-8,(top+H)/2)}
   // 掛け合っている仲間を点線でつなぐ
@@ -160,27 +160,35 @@ function paintGarden(c,W,H,now,v){
   if(v.cage)paintCage(c,v.cage);
 }
 
-// 共有動画の文字は、ストーリーズの上下14%に重なるUIを避けて中央の安全領域に置く。
-// ロゴは文字を画像化した既存SVG、副題は既存の翻訳キー、月名は app.js から翻訳済みで渡される。
-function paintShareOverlay(c,W,H,now,{moon,progress}){
-  c.save();
-  // 明暗差のある庭でもロゴが読める、ごく薄い上下の影。
-  let g=c.createLinearGradient(0,0,0,H*.32);g.addColorStop(0,'rgba(2,17,22,.58)');g.addColorStop(.7,'rgba(2,17,22,.15)');g.addColorStop(1,'rgba(2,17,22,0)');c.fillStyle=g;c.fillRect(0,0,W,H*.32);
-  g=c.createLinearGradient(0,H*.66,0,H);g.addColorStop(0,'rgba(2,17,22,0)');g.addColorStop(1,'rgba(2,17,22,.56)');c.fillStyle=g;c.fillRect(0,H*.66,W,H*.34);
-  // ループ再生の継ぎ目が見えないよう、progress では見た目を変えない。
-  c.globalAlpha=1;c.shadowColor='rgba(0,12,15,.48)';c.shadowBlur=7;c.shadowOffsetY=2;
-  const logoW=Math.min(178,W*.44),logoH=logoW*460/1200,logoX=34,logoY=H*.15;
-  if(SHARE_WORDMARK.complete&&SHARE_WORDMARK.naturalWidth)c.drawImage(SHARE_WORDMARK,logoX,logoY,logoW,logoH);
-  c.shadowBlur=4;c.fillStyle='rgba(247,237,207,.84)';c.textAlign='left';c.textBaseline='alphabetic';
-  const sub=t('brand.sub');let subSize=11;c.font=`400 ${subSize}px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif`;
-  while(subSize>8&&c.measureText(sub).width>W-68){subSize-=.5;c.font=`400 ${subSize}px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif`}
-  c.fillText(sub,logoX,logoY+logoH+13);
+// 共有動画は横長の庭をアプリに近い比率で見せ、上下を同じ色面へ溶かして縦長にする。
+// 文字はストーリーズの上下14%を避け、ループの継ぎ目が出ない固定配置にする。
+function paintShareFrame(c,W,H,now,{scene,moon}){
+  const gardenH=520,gardenY=125,serifJa='"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP",serif',serifEn='Georgia,"Times New Roman",serif';
+  c.save();c.clearRect(0,0,W,H);
+  let g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#082c44');g.addColorStop(.45,'#0b4044');g.addColorStop(.75,'#092f32');g.addColorStop(1,'#03191f');c.fillStyle=g;c.fillRect(0,0,W,H);
 
-  c.shadowBlur=5;
-  c.strokeStyle='rgba(220,166,64,.9)';c.lineWidth=1.5;c.beginPath();c.moveTo(34,H*.79);c.lineTo(70,H*.79);c.stroke();
-  const moonName=moon?.name||'';let moonSize=13;c.font=`500 ${moonSize}px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif`;
-  while(moonSize>10&&c.measureText(moonName).width>W-68){moonSize-=.5;c.font=`500 ${moonSize}px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif`}
-  c.fillStyle='#f7edcf';c.fillText(moonName,34,H*.79+24);
+  // 405×520（縦横比約0.78）なら、元絵の横幅を約52%見せられる。
+  c.save();c.beginPath();c.rect(0,gardenY,W,gardenH);c.clip();c.translate(0,gardenY);
+  const v=scene(W,gardenH);v.sharePosX=.6;paintGarden(c,W,gardenH,now,v);c.restore();
+
+  // 絵の端を、上は夜空、下は深い草むらへなめらかにつなぐ。
+  g=c.createLinearGradient(0,76,0,164);g.addColorStop(0,'rgba(8,44,68,0)');g.addColorStop(.48,'rgba(8,44,68,.72)');g.addColorStop(.68,'rgba(8,44,68,.58)');g.addColorStop(1,'rgba(8,44,68,0)');c.fillStyle=g;c.fillRect(0,76,W,88);
+  g=c.createLinearGradient(0,520,0,H);g.addColorStop(0,'rgba(3,25,31,0)');g.addColorStop(.58,'rgba(3,25,31,.78)');g.addColorStop(1,'rgba(3,25,31,1)');c.fillStyle=g;c.fillRect(0,520,W,H-520);
+  g=c.createLinearGradient(0,0,W,0);g.addColorStop(0,'rgba(0,11,16,.16)');g.addColorStop(.14,'rgba(0,11,16,0)');g.addColorStop(.86,'rgba(0,11,16,0)');g.addColorStop(1,'rgba(0,11,16,.16)');c.fillStyle=g;c.fillRect(0,0,W,H);
+
+  c.textAlign='center';c.textBaseline='alphabetic';c.shadowColor='rgba(0,12,15,.58)';c.shadowBlur=7;c.shadowOffsetY=2;
+  const logoW=Math.min(168,W*.415),logoH=logoW*460/1200,logoX=(W-logoW)/2,logoY=98;
+  if(SHARE_WORDMARK.complete&&SHARE_WORDMARK.naturalWidth)c.drawImage(SHARE_WORDMARK,logoX,logoY,logoW,logoH);
+
+  const en=document.documentElement.lang==='en',sub=t('brand.sub');let subSize=en?10.5:11.5;
+  c.font=`400 ${subSize}px ${en?serifEn:serifJa}`;c.letterSpacing=en?'.7px':'1.4px';
+  while(subSize>8&&c.measureText(sub).width>W-64){subSize-=.5;c.font=`400 ${subSize}px ${en?serifEn:serifJa}`}
+  c.fillStyle='rgba(247,237,207,.88)';c.shadowBlur=4;c.fillText(sub,W/2,176);
+
+  c.strokeStyle='rgba(220,166,64,.72)';c.lineWidth=1;c.beginPath();c.moveTo(W/2-18,568);c.lineTo(W/2+18,568);c.stroke();
+  const moonName=moon?.name||'';let moonSize=en?11.5:14;c.font=`400 ${moonSize}px ${en?serifEn:serifJa}`;c.letterSpacing=en?'.45px':'1.6px';
+  while(moonSize>9.5&&c.measureText(moonName).width>W-64){moonSize-=.5;c.font=`400 ${moonSize}px ${en?serifEn:serifJa}`}
+  c.fillStyle='#f7edcf';c.shadowBlur=5;c.fillText(moonName,W/2,600);
   c.restore();
 }
 // ドラッグ中だけ中央下に出る「控えの虫かご」。on：虫が重なっている
