@@ -346,9 +346,13 @@ function renderBench(){const el=document.getElementById('bench');const list=S.bu
 const REC_MIN=8,REC_MAX=10,REC_FADE=.3,REC_W=1080,REC_H=1920,REC_LW=405,REC_LH=720; // REC_LW×REC_LH：描くときの大きさ（スマホの庭と同じくらいの縮尺）
 const REC_TYPE=(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream&&['video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4;codecs=avc1,mp4a','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(x=>MediaRecorder.isTypeSupported(x)))||null;
 let REC=null,recDest=null,recLevel=null;
+// 動画用に、庭を w×h の大きさで描くときの中身（虫の位置と地面の高さをその大きさに合わせる）。art.js の paintShareFrame から呼ばれる
+const shareScene=(w,h)=>{const v=gardenScene(w,h,clamp(artGroundY(GARDEN_ART,GARDEN_GROUND,w,h,artPosX()),16,h*.6),false);v.share=true;return v};
 function drawRecFrame(now){const r=REC;if(now-r.last<30)return;r.last=now; // 30コマ/秒で十分
   const c=r.c;c.setTransform(REC_W/REC_LW,0,0,REC_H/REC_LH,0,0);
-  const v=gardenScene(REC_LW,REC_LH,clamp(artGroundY(GARDEN_ART,GARDEN_GROUND,REC_LW,REC_LH,artPosX()),16,REC_LH*.6),false);v.share=true;
+  // 動画1コマの構図は art.js が決める：庭をどの大きさ・位置に描くか（scene(w,h) で中身をもらって paintGarden に渡す）、文字をどこに置くか
+  if(typeof paintShareFrame==='function'){c.clearRect(0,0,REC_LW,REC_LH);paintShareFrame(c,REC_LW,REC_LH,now,{scene:shareScene,moon:moonInfo()});return}
+  const v=shareScene(REC_LW,REC_LH);
   paintGarden(c,REC_LW,REC_LH,now,v);
   if(typeof paintShareOverlay==='function')paintShareOverlay(c,REC_LW,REC_LH,now,{moon:v.moon,progress:r.started?clamp((ac.currentTime-r.t0)/REC_MAX,0,1):0})}
 // いま鳴いている（またはすぐ鳴く・鳴き終えたばかりの）虫の数。コロコロの粒と粒の間のような、ひと鳴きの中の短いすき間は「鳴いている」に数える

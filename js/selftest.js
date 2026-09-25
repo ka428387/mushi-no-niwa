@@ -43,6 +43,9 @@ if(SELFTEST)addEventListener('load',async()=>{
     const r0=REC,blob=await p,len=ac.currentTime-r0.t0; /* 録り始め→止め終わりまで（最後のフェード込み） */
     const au=recDest.stream.getAudioTracks().length,left=document.querySelectorAll('canvas').length-n0;
     return (ok0&&blob.size>10000&&/^video\//.test(blob.type)&&au>0&&left===0&&!REC&&len>=1.4&&len<=2.9)||`始まり${ok0}・長さ${len.toFixed(2)}秒・大きさ${blob.size}・種類${blob.type}・音${au}・残ったキャンバス${left}`});
+  await check('動画：好きな大きさの庭（scene）でも、虫が地面より下・枠の中に並ぶ',()=>{
+    for(const[w,h]of[[405,720],[405,520],[300,420]]){const v=shareScene(w,h);if(!v.share||!v.bugs.length)return `${w}×${h}: 虫なし`;
+      const bad=v.bugs.filter(b=>!(b.x>=0&&b.x<=w&&b.y>=v.top-.5&&b.y<=h));if(bad.length)return `${w}×${h}: ${bad.length}匹が枠外`}return true});
   await check('動画：ボタンに渡す進み具合が、録り始めは0、途中で増え、止めると1になる',async()=>{
     if(!REC_TYPE)return '録画に対応していない';const p=startRec(1.5,2.5),a=recProgress();await until(()=>REC&&REC.started,2600);await wait(700);
     const b=recProgress(),r0=REC;await until(()=>r0.ending,3000);const c=recProgress();await p;
