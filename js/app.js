@@ -474,7 +474,7 @@ const TIP_IDS=['com.ka428387.izayoi.tip1','com.ka428387.izayoi.tip2','com.ka4283
       try{const r=await store('purchase',{id});if(r.status==='success'){toast(t('tip.thanks'));lead();if(becomeSupporter()){M.classList.remove('on');openLetter()}}else if(r.status==='pending')toast(t('tip.pending'))}
       catch(e){toast(t('tip.failed'));console.error(e)}
       finally{busy=false;A.querySelectorAll('button').forEach(x=>x.disabled=false)}};
-    document.getElementById('tipRow').hidden=false;lead(); // 起動時にも回数を見る（保存が消えても、この iPhone の記録から戻る）
+    document.getElementById('tipBtn').hidden=false;lead(); // 起動時にも回数を見る（保存が消えても、この iPhone の記録から戻る）
     document.getElementById('tipBtn').onclick=async()=>{M.classList.add('on');lead();A.innerHTML=`<p>${t('tip.loading')}</p>`;
       let list=[];try{list=(await store('products',{ids:TIP_IDS})).products||[]}catch(e){console.error(e)}
       list.sort((a,b)=>TIP_IDS.indexOf(a.id)-TIP_IDS.indexOf(b.id));A.innerHTML=list.length?'':`<p>${t('tip.unavailable')}</p>`;

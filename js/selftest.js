@@ -61,7 +61,7 @@ if(SELFTEST)addEventListener('load',async()=>{
   await check('すべて逃がす：2回押しで全部いなくなり、「バイバイ！」が出る',async()=>{const b=document.getElementById('freeAll');b.click();const mid=S.bugs.length;b.click();await wait(100);
     return (mid>0&&S.bugs.length===0&&document.getElementById('toast').textContent.includes('バイバイ！'))||`途中${mid}匹・最後${S.bugs.length}匹`});
   await check('描画：各画面を数フレーム描いてもエラーが出ない',async()=>{for(const t of['field','garden','zukan']){show(t);await wait(400)}return true});
-  await check('応援：ウェブ版では応援ボタンが出ない（iPhoneアプリだけ）',()=>document.getElementById('tipRow').hidden||'ウェブ版に応援ボタンが出ている');
+  await check('応援：ウェブ版では応援ボタンが出ない（iPhoneアプリだけ）',()=>getComputedStyle(document.getElementById('tipBtn')).display==='none'||'ウェブ版に応援ボタンが出ている');
   await check('お礼：応援前はほたるも手紙も出ず、応援後は庭の中にほたるが飛び、手紙が読め、オフにできる',async()=>{
     show('garden');if(gardenScene(400,500,200,false).fireflies.length||!document.getElementById('letterRow').hidden)return '応援前なのに出ている';
     becomeSupporter();const f=gardenScene(400,500,200,false).fireflies;
