@@ -61,6 +61,7 @@ if(SELFTEST)addEventListener('load',async()=>{
   await check('すべて逃がす：2回押しで全部いなくなり、「バイバイ！」が出る',async()=>{const b=document.getElementById('freeAll');b.click();const mid=S.bugs.length;b.click();await wait(100);
     return (mid>0&&S.bugs.length===0&&document.getElementById('toast').textContent.includes('バイバイ！'))||`途中${mid}匹・最後${S.bugs.length}匹`});
   await check('描画：各画面を数フレーム描いてもエラーが出ない',async()=>{for(const t of['field','garden','zukan']){show(t);await wait(400)}return true});
+  await check('応援：ウェブ版では応援ボタンが出ない（iPhoneアプリだけ）',()=>document.getElementById('tipRow').hidden||'ウェブ版に応援ボタンが出ている');
   await check('英語表示：3つの画面と虫の詳細に日本語が残っておらず、辞書の抜けもない',async()=>{
     setLang('en');S.seen={emma:1,kantan:1};S.bugs=[];
     for(const[id,sp,g]of[[951,'emma',true],[952,'kantan',true],[953,'suzumushi',false]])S.bugs.push({id,sp,pitch:1,rate:1,name:nextName(sp),garden:g,x:.3+id%3*.2,y:.6,mute:false});

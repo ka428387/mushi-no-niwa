@@ -443,6 +443,24 @@ function setLang(l){if(!LANGS.includes(l))return;LANG=l;S.settings.lang=l;save()
   if(G.sel)openBug(G.sel)}
 for(const id of['langBtn','langBtnStart'])document.getElementById(id).onclick=()=>setLang(LANG==='ja'?'en':'ja');
 
+// ───────── 応援（投げ銭）─────────
+// iPhoneアプリだけ。App 内課金（app/ios/App/App/IzayoiStore.swift、消耗型3つ）。応援しても遊べる範囲は変わらない。ウェブ版ではボタンを出さない
+const TIP_IDS=['com.ka428387.izayoi.tip1','com.ka428387.izayoi.tip2','com.ka428387.izayoi.tip3'];
+{const cap=window.Capacitor;
+  if(cap&&cap.nativePromise&&(cap.PluginHeaders||[]).some(h=>h.name==='IzayoiStore')){
+    const store=(m,o)=>cap.nativePromise('IzayoiStore',m,o||{}),M=document.getElementById('tipM'),P=document.getElementById('tipP'),A=document.getElementById('tipActs');let busy=false;
+    const lead=async()=>{let n=0;try{n=(await store('status')).tips||0}catch(e){}P.innerHTML=t('tip.lead')+(n?'<br><small>'+t('tip.count',{n})+'</small>':'')};
+    const buy=async id=>{if(busy)return;busy=true;A.querySelectorAll('button').forEach(x=>x.disabled=true);
+      try{const r=await store('purchase',{id});if(r.status==='success'){toast(t('tip.thanks'));lead()}else if(r.status==='pending')toast(t('tip.pending'))}
+      catch(e){toast(t('tip.failed'));console.error(e)}
+      finally{busy=false;A.querySelectorAll('button').forEach(x=>x.disabled=false)}};
+    document.getElementById('tipRow').hidden=false;
+    document.getElementById('tipBtn').onclick=async()=>{M.classList.add('on');lead();A.innerHTML=`<p>${t('tip.loading')}</p>`;
+      let list=[];try{list=(await store('products',{ids:TIP_IDS})).products||[]}catch(e){console.error(e)}
+      list.sort((a,b)=>TIP_IDS.indexOf(a.id)-TIP_IDS.indexOf(b.id));A.innerHTML=list.length?'':`<p>${t('tip.unavailable')}</p>`;
+      for(const p of list){const b=document.createElement('button');b.className='btn';b.textContent=t('tip.'+(TIP_IDS.indexOf(p.id)+1),{price:p.price});b.onclick=()=>buy(p.id);A.appendChild(b)}};
+    document.getElementById('tipClose').onclick=()=>M.classList.remove('on')}}
+
 // ───────── 図鑑 ─────────
 let preview=null,previewBtn=null;
 // 図鑑の「声を聞く」：その虫の声だけが聞こえるよう、庭の虫・雨・風を小さくする

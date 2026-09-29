@@ -44,6 +44,12 @@ ja:{
   'zukan.stat':'見つけた種類 {found}／{total}　・　つかまえた虫 {n}匹（庭 {g}）',
   'rec.btn':'動画にする','rec.recording':'録画中…（押すと中止）','rec.preparing':'動画を用意しています…',
   'rec.cancelled':'録画をやめました','rec.failed':'動画を作れませんでした','rec.saved':'動画を保存しました',
+  'tip.btn':'♡ Izayoi を応援する','tip.title':'Izayoi を応援する',
+  'tip.lead':'Izayoi は無料で、すべて遊べます。<br>気に入ってもらえたら、応援してもらえるとうれしいです。<br><small>応援しても、遊べる範囲は変わりません。</small>',
+  'tip.count':'これまでに {n} 回応援してもらいました。ありがとうございます。',
+  'tip.1':'ちょっと応援　{price}','tip.2':'応援　{price}','tip.3':'たっぷり応援　{price}',
+  'tip.loading':'読み込んでいます…','tip.unavailable':'いまは App Store につながりません。時間をおいてもう一度どうぞ。',
+  'tip.thanks':'応援ありがとうございます！','tip.pending':'承認を待っています。承認されたら応援が届きます','tip.failed':'応援できませんでした',
 },
 en:{
   'brand.sub':'A Garden of Insect Songs',
@@ -85,6 +91,12 @@ en:{
   'zukan.stat':'Species found {found}/{total} · Insects {n} (garden {g})',
   'rec.btn':'Make a video','rec.recording':'Recording… (tap to cancel)','rec.preparing':'Preparing your video…',
   'rec.cancelled':'Recording cancelled','rec.failed':'Couldn’t make the video','rec.saved':'Video saved',
+  'tip.btn':'♡ Support Izayoi','tip.title':'Support Izayoi',
+  'tip.lead':'Izayoi is free, and everything in it is yours to enjoy.<br>If you like it, a small tip would mean a lot.<br><small>Tipping doesn’t change anything in the app.</small>',
+  'tip.count':'Tips so far: {n}. Thank you!',
+  'tip.1':'Small tip — {price}','tip.2':'Medium tip — {price}','tip.3':'Large tip — {price}',
+  'tip.loading':'Loading…','tip.unavailable':'Can’t reach the App Store right now. Please try again later.',
+  'tip.thanks':'Thank you for your support!','tip.pending':'Waiting for approval. Your tip will go through once it’s approved','tip.failed':'Couldn’t complete the tip',
 },
 };
 
