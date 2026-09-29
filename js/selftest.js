@@ -62,6 +62,16 @@ if(SELFTEST)addEventListener('load',async()=>{
     return (mid>0&&S.bugs.length===0&&document.getElementById('toast').textContent.includes('バイバイ！'))||`途中${mid}匹・最後${S.bugs.length}匹`});
   await check('描画：各画面を数フレーム描いてもエラーが出ない',async()=>{for(const t of['field','garden','zukan']){show(t);await wait(400)}return true});
   await check('応援：ウェブ版では応援ボタンが出ない（iPhoneアプリだけ）',()=>document.getElementById('tipRow').hidden||'ウェブ版に応援ボタンが出ている');
+  await check('お礼：応援前はほたるも手紙も出ず、応援後は庭の中にほたるが飛び、手紙が読め、オフにできる',async()=>{
+    show('garden');if(gardenScene(400,500,200,false).fireflies.length||!document.getElementById('letterRow').hidden)return '応援前なのに出ている';
+    becomeSupporter();const f=gardenScene(400,500,200,false).fireflies;
+    if(f.length!==FF_N)return 'ほたるの数: '+f.length;const out=f.filter(p=>p.x<0||p.x>400||p.y<150||p.y>500||!(p.glow>=0&&p.glow<=1));if(out.length)return '枠の外: '+JSON.stringify(out[0]);
+    if(document.getElementById('letterRow').hidden)return '図鑑に手紙のボタンが出ない';
+    openLetter();const txt=document.getElementById('letterM').innerText;document.getElementById('letterClose').click();if(txt.length<40)return '手紙が空';
+    document.getElementById('ffBtn').click();const off=gardenScene(400,500,200,false).fireflies.length;document.getElementById('ffBtn').click();
+    S.settings.weather='light';const rain=(rainLvl=RAIN_T.light,gardenScene(400,500,200,false).fireflies.length);S.settings.weather='clear';rainLvl=0;
+    await wait(300);S.supporter=false;renderSupporter();
+    return (off===0&&rain===0)||`オフでも${off}匹・雨でも${rain}匹`});
   await check('英語表示：3つの画面と虫の詳細に日本語が残っておらず、辞書の抜けもない',async()=>{
     setLang('en');S.seen={emma:1,kantan:1};S.bugs=[];
     for(const[id,sp,g]of[[951,'emma',true],[952,'kantan',true],[953,'suzumushi',false]])S.bugs.push({id,sp,pitch:1,rate:1,name:nextName(sp),garden:g,x:.3+id%3*.2,y:.6,mute:false});

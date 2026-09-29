@@ -74,6 +74,7 @@
   <section id="zukan">
     <p class="hint" id="zukanStat"></p>
     <div class="zukan" id="zgrid"></div>
+    <div class="gclear" id="letterRow" hidden style="margin-top:14px"><button class="btn" id="letterBtn" data-i18n="letter.btn">✉ 虫たちからの手紙</button></div>
   </section>
 </main>
 
@@ -103,7 +104,14 @@
   <h3 data-i18n="tip.title">Izayoi を応援する</h3>
   <p id="tipP"></p>
   <div class="acts" id="tipActs" style="flex-direction:column"></div>
+  <div class="acts" id="thanksActs" hidden style="margin-top:8px"><button class="btn" id="tipLetter" data-i18n="letter.read">手紙を読む</button><button class="btn" id="ffBtn"></button></div>
   <div class="acts" style="margin-top:8px"><button class="btn" id="tipClose" data-i18n="bug.close">閉じる</button></div>
+</div></div>
+
+<div class="modal" id="letterM"><div class="sheet">
+  <h3 data-i18n="letter.title">応援してくれたあなたへ</h3>
+  <p data-i18n-html="letter.body"></p>
+  <div class="acts" style="margin-top:8px"><button class="btn" id="letterClose" data-i18n="bug.close">閉じる</button></div>
 </div></div>
 
 <script src="js/util.js"></script>

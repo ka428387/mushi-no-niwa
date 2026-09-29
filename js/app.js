@@ -57,7 +57,7 @@ for(const k in AREAS){Object.assign(AREAS[k],AREA_LOOK[k],{horizon:HORIZON[k]});
 const SELFTEST=/[?&]selftest\b/.test(location.search);
 const KEY=SELFTEST?'mushinoniwa.selftest':'mushinoniwa.v1';
 if(SELFTEST)try{localStorage.removeItem(KEY)}catch(e){}
-const S=Object.assign({bugs:[],nextId:1,seen:{},settings:{temp:22,depth:.7,wind:.35,vol:.8},area:'kusamura'},(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}})());
+const S=Object.assign({bugs:[],nextId:1,seen:{},settings:{temp:22,depth:.7,wind:.35,vol:.8,fireflies:true},area:'kusamura',supporter:false},(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}})());
 S.settings=Object.assign({temp:22,depth:.7,wind:.35,vol:.8,soft:.6,weather:'clear'},S.settings);
 if(S.settings.weather==='heavy')S.settings.weather='light';
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -296,13 +296,14 @@ function gardenScene(W,H,top,dragging){
   const pairs=[];
   for(let i=0;i<bugs.length;i++)for(let j=i+1;j<bugs.length;j++){const a=bugs[i],b=bugs[j];if(a.sp!==b.sp||a.mute||b.mute||pairDist(a,b)>=PAIR_R)continue;
     pairs.push({p:pos(a),q:pos(b),on:sing.get(a.id)||sing.get(b.id)})}
-  return{top,rain:rl,moon:moonInfo(),dragging,pairs,cage:null,
+  return{top,rain:rl,moon:moonInfo(),dragging,pairs,cage:null,fireflies:fireflies(W,H,top,rl),
     bugs:bugs.map(b=>{const q=pos(b);return{key:b.sp,x:q.x,y:q.y,ny:b.y,mute:b.mute,sing:sing.get(b.id),name:b.name}})}}
 function drawGarden(now){
   const{c,W,H}=fitCanvas(gc);G.W=W;G.H=H;
   const d=G.drag,dragging=!!(d&&d.moved);
   const v=gardenScene(W,H,gTop(),dragging);if(dragging)v.cage={...cagePos(),on:overCage(d)};
   paintGarden(c,W,H,now,v); // 描く（art.js）
+  if(typeof paintFireflies!=='function'&&v.fireflies.length)paintFirefliesFallback(c,v.fireflies); // Codex の絵が届くまでの仮
   const bugs=v.bugs;
   document.getElementById('gempty').style.display=bugs.length?'none':'flex';
   document.getElementById('gstat').textContent=bugs.length?t('garden.stat',{n:bugs.length,max:GARDEN_MAX})+(S.settings.weather==='light'?t('garden.statRain'):''):'';
@@ -436,12 +437,31 @@ if('mediaSession' in navigator){
 function updateNowPlaying(){if('mediaSession' in navigator)navigator.mediaSession.playbackState=playing?'playing':'paused'}
 refreshCtrlLabels();
 // 言語の切り替え：画面の文字を全部書き直す（名前をつけた虫の名前はそのまま）
-function setLang(l){if(!LANGS.includes(l))return;LANG=l;S.settings.lang=l;save();applyStaticText();refreshCtrlLabels();renderWeather();
+function setLang(l){if(!LANGS.includes(l))return;LANG=l;S.settings.lang=l;save();applyStaticText();refreshCtrlLabels();renderWeather();renderSupporter();
   document.getElementById('playBtn').textContent=t(playing?'play.pause':'play.play');
   if('mediaSession' in navigator&&navigator.mediaSession.metadata)navigator.mediaSession.metadata=new MediaMetadata({title:'Izayoi',artist:t('brand.sub'),artwork:navigator.mediaSession.metadata.artwork});
   if(ac){renderAreas();renderBench();if(tab==='zukan')renderZukan()}
   if(G.sel)openBug(G.sel)}
 for(const id of['langBtn','langBtnStart'])document.getElementById(id).onclick=()=>setLang(LANG==='ja'?'en':'ja');
+
+// ───────── 応援のお礼：ほたると手紙 ─────────
+// 1回でも応援すると S.supporter（どの金額でも同じ）。どちらも見た目だけで、遊びは変わらない
+// ほたる：庭の上をゆっくり漂い、ふわっと光っては消える。雨のあいだは姿を見せない（降り出すと薄れて消える）。描き方は art.js の paintFireflies（無ければ下の仮の光）
+const FF_N=5;
+function fireflies(W,H,top,rl){if(!S.supporter||!S.settings.fireflies||rl>.3)return[];const s=performance.now()/1000,out=[];
+  for(let i=0;i<FF_N;i++){const a=i*2.399,x=.5+.42*Math.sin(s*.043*(1+i*.13)+a)*Math.cos(s*.017+a*1.7),y=.45+.4*Math.sin(s*.031*(1+i*.09)+a*2.3);
+    const cyc=4.2+i*.7,ph=((s+a*3)%cyc)/cyc,glow=ph<.35?Math.sin(ph/.35*Math.PI):0; // 光るのは周期の1/3ほど。あとは暗く漂う
+    out.push({x:24+clamp(x,0,1)*(W-48),y:top-30+clamp(y,0,1)*(H-top-10),glow:glow*(1-rl/.3)})}return out}
+function paintFirefliesFallback(c,list){for(const f of list){if(f.glow<.02)continue;const g=c.createRadialGradient(f.x,f.y,0,f.x,f.y,10);
+  g.addColorStop(0,`rgba(214,255,150,${.9*f.glow})`);g.addColorStop(.3,`rgba(170,235,110,${.35*f.glow})`);g.addColorStop(1,'rgba(150,220,90,0)');c.fillStyle=g;c.beginPath();c.arc(f.x,f.y,10,0,7);c.fill()}}
+function renderSupporter(){document.getElementById('letterRow').hidden=!S.supporter;document.getElementById('thanksActs').hidden=!S.supporter;
+  document.getElementById('ffBtn').textContent=t(S.settings.fireflies?'ff.on':'ff.off')}
+function becomeSupporter(){const first=!S.supporter;S.supporter=true;save();renderSupporter();return first}
+const openLetter=()=>document.getElementById('letterM').classList.add('on');
+document.getElementById('letterBtn').onclick=document.getElementById('tipLetter').onclick=openLetter;
+document.getElementById('letterClose').onclick=()=>document.getElementById('letterM').classList.remove('on');
+document.getElementById('ffBtn').onclick=()=>{S.settings.fireflies=!S.settings.fireflies;save();renderSupporter()};
+renderSupporter();
 
 // ───────── 応援（投げ銭）─────────
 // iPhoneアプリだけ。App 内課金（app/ios/App/App/IzayoiStore.swift、消耗型3つ）。応援しても遊べる範囲は変わらない。ウェブ版ではボタンを出さない
@@ -449,12 +469,12 @@ const TIP_IDS=['com.ka428387.izayoi.tip1','com.ka428387.izayoi.tip2','com.ka4283
 {const cap=window.Capacitor;
   if(cap&&cap.nativePromise&&(cap.PluginHeaders||[]).some(h=>h.name==='IzayoiStore')){
     const store=(m,o)=>cap.nativePromise('IzayoiStore',m,o||{}),M=document.getElementById('tipM'),P=document.getElementById('tipP'),A=document.getElementById('tipActs');let busy=false;
-    const lead=async()=>{let n=0;try{n=(await store('status')).tips||0}catch(e){}P.innerHTML=t('tip.lead')+(n?'<br><small>'+t('tip.count',{n})+'</small>':'')};
+    const lead=async()=>{let n=0;try{n=(await store('status')).tips||0}catch(e){}if(n>0)becomeSupporter();P.innerHTML=t('tip.lead')+(n?'<br><small>'+t('tip.count',{n})+'</small>':'')};
     const buy=async id=>{if(busy)return;busy=true;A.querySelectorAll('button').forEach(x=>x.disabled=true);
-      try{const r=await store('purchase',{id});if(r.status==='success'){toast(t('tip.thanks'));lead()}else if(r.status==='pending')toast(t('tip.pending'))}
+      try{const r=await store('purchase',{id});if(r.status==='success'){toast(t('tip.thanks'));lead();if(becomeSupporter()){M.classList.remove('on');openLetter()}}else if(r.status==='pending')toast(t('tip.pending'))}
       catch(e){toast(t('tip.failed'));console.error(e)}
       finally{busy=false;A.querySelectorAll('button').forEach(x=>x.disabled=false)}};
-    document.getElementById('tipRow').hidden=false;
+    document.getElementById('tipRow').hidden=false;lead(); // 起動時にも回数を見る（保存が消えても、この iPhone の記録から戻る）
     document.getElementById('tipBtn').onclick=async()=>{M.classList.add('on');lead();A.innerHTML=`<p>${t('tip.loading')}</p>`;
       let list=[];try{list=(await store('products',{ids:TIP_IDS})).products||[]}catch(e){console.error(e)}
       list.sort((a,b)=>TIP_IDS.indexOf(a.id)-TIP_IDS.indexOf(b.id));A.innerHTML=list.length?'':`<p>${t('tip.unavailable')}</p>`;
