@@ -64,9 +64,11 @@ if(SELFTEST)addEventListener('load',async()=>{
   await check('応援：ウェブ版では応援ボタンが出ない（iPhoneアプリだけ）',()=>getComputedStyle(document.getElementById('tipBtn')).display==='none'||'ウェブ版に応援ボタンが出ている');
   await check('お礼：応援前はほたるも手紙も出ず、応援後は庭の中にほたるが飛び、手紙が読め、オフにできる',async()=>{
     show('garden');if(gardenScene(400,500,200,false).fireflies.length||!document.getElementById('letterRow').hidden)return '応援前なのに出ている';
+    const vis=id=>getComputedStyle(document.getElementById(id)).display!=='none'; /* hidden が CSS の display に負けていないか（実際に見えるか）も見る */
+    if(vis('letterRow')||vis('thanksActs'))return '応援前なのに、手紙・ほたるのボタンが画面に見えている';
     becomeSupporter();const f=gardenScene(400,500,200,false).fireflies;
     if(f.length!==FF_N)return 'ほたるの数: '+f.length;const out=f.filter(p=>p.x<0||p.x>400||p.y<150||p.y>500||!(p.glow>=0&&p.glow<=1));if(out.length)return '枠の外: '+JSON.stringify(out[0]);
-    if(document.getElementById('letterRow').hidden)return '図鑑に手紙のボタンが出ない';
+    if(document.getElementById('letterRow').hidden||!vis('letterRow')||!vis('thanksActs'))return '応援後なのに、手紙・ほたるのボタンが見えない';
     openLetter();const txt=document.getElementById('letterM').innerText;document.getElementById('letterClose').click();if(txt.length<40)return '手紙が空';
     document.getElementById('ffBtn').click();const off=gardenScene(400,500,200,false).fireflies.length;document.getElementById('ffBtn').click();
     S.settings.weather='light';const rain=(rainLvl=RAIN_T.light,gardenScene(400,500,200,false).fireflies.length);S.settings.weather='clear';rainLvl=0;
