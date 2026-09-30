@@ -49,7 +49,7 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 .btn.warn{color:var(--danger)}
 .gclear{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:-4px 0 0}
 .btn:disabled{opacity:.4;cursor:default}
-.recrow{display:flex;justify-content:flex-end;min-height:42px;margin:10px 0 2px}
+.recrow{display:flex;justify-content:flex-end;min-height:38px;margin:-2px 0 -6px}
 #recBtn{position:relative;min-height:38px;max-width:100%;padding:8px 15px 8px 34px;border-color:rgba(220,166,64,.66);border-radius:999px;background:rgba(11,48,50,.76);color:var(--text);line-height:1.35;text-align:center;white-space:normal;box-shadow:inset 0 1px rgba(255,255,255,.04),0 8px 22px rgba(0,13,15,.15);transition:width .2s,background .2s,border-color .2s,color .2s,box-shadow .2s}
 #recBtn::before{content:'';position:absolute;left:15px;top:50%;width:8px;height:8px;border-radius:50%;transform:translateY(-50%);background:var(--accent);box-shadow:0 0 0 4px rgba(220,166,64,.12)}
 #recBtn:hover{border-color:var(--accent);background:rgba(21,71,63,.86)}
