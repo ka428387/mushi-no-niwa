@@ -481,6 +481,36 @@ const TIP_IDS=['com.ka428387.izayoi.tip1','com.ka428387.izayoi.tip2','com.ka4283
       for(const p of list){const b=document.createElement('button');b.className='btn';b.textContent=t('tip.'+(TIP_IDS.indexOf(p.id)+1),{price:p.price});b.onclick=()=>buy(p.id);A.appendChild(b)}};
     document.getElementById('tipClose').onclick=()=>M.classList.remove('on')}}
 
+// ───────── データの引き継ぎ（機種変更・入れ直しの備え）─────────
+// 図鑑・庭・設定を「引き継ぎコード」（文字列）にして書き出し、別の端末で貼り付けて読み込む。サーバーは使わない。
+// メモアプリが " を “ に変えても壊れないよう、中身は base64 にする
+const XFER_PRE='izayoi1:';
+const xferEncode=()=>XFER_PRE+btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+function xferDecode(txt){ // 読めて、中身が正しければデータ、だめなら null
+  try{const raw=String(txt).replace(/\s+/g,'');if(!raw.startsWith(XFER_PRE))return null;
+    const o=JSON.parse(decodeURIComponent(escape(atob(raw.slice(XFER_PRE.length)))));
+    if(!o||typeof o!=='object'||!Array.isArray(o.bugs)||!o.bugs.every(b=>b&&typeof b==='object'&&SPECIES[b.sp]&&isFinite(b.pitch)&&isFinite(b.rate)&&isFinite(b.id)))return null;
+    return o}catch(e){return null}}
+function xferApply(o){ // 読み込んだ内容でいまのデータを置き換える（応援のお礼だけは、どちらかにあれば残す）
+  S.bugs=o.bugs;S.nextId=Math.max(+o.nextId||1,...o.bugs.map(b=>b.id+1));
+  S.seen=o.seen&&typeof o.seen==='object'?o.seen:{};
+  if(o.settings&&typeof o.settings==='object')Object.assign(S.settings,o.settings);
+  if(AREAS[o.area])S.area=o.area;
+  S.supporter=!!(S.supporter||o.supporter);save()}
+{const M=document.getElementById('dataM'),box=document.getElementById('dataBox'),imp=document.getElementById('dataImport');
+  const cap=window.Capacitor,canShare=!!(cap&&cap.nativePromise&&(cap.PluginHeaders||[]).some(h=>h.name==='Share'));
+  document.getElementById('dataBtn').onclick=()=>{box.value='';box.placeholder=t('xfer.ph');M.classList.add('on')};
+  document.getElementById('dataClose').onclick=()=>{M.classList.remove('on');imp.classList.remove('armed');imp.textContent=t('xfer.import')};
+  document.getElementById('dataShare').hidden=!canShare;
+  const make=()=>{box.value=xferEncode();return box.value};
+  document.getElementById('dataExport').onclick=async()=>{const code=make();
+    try{await navigator.clipboard.writeText(code);toast(t('xfer.copied'))}catch(e){box.focus();box.select();toast(t('xfer.copyFail'))}};
+  document.getElementById('dataShare').onclick=async()=>{const code=make();
+    try{await cap.nativePromise('Share','share',{text:code})}catch(e){if(!/cancel/i.test(e&&e.message||''))toast(t('xfer.copyFail'))}};
+  imp.onclick=()=>{const txt=box.value.trim();if(!txt){toast(t('xfer.empty'));return}
+    const o=xferDecode(txt);if(!o){toast(t('xfer.bad'));return}
+    armButton(imp,t('xfer.arm'),()=>{xferApply(o);toast(t('xfer.done',{n:o.bugs.length}));setTimeout(()=>location.reload(),900)})}}
+
 // ───────── 図鑑 ─────────
 let preview=null,previewBtn=null;
 // 図鑑の「声を聞く」：その虫の声だけが聞こえるよう、庭の虫・雨・風を小さくする

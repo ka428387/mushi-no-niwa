@@ -65,7 +65,7 @@
       <label><span data-i18n="ctl.timer">おやすみタイマー</span><select id="timer"><option value="0">なし</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option><option value="90">90分</option></select></label>
       <label>&nbsp;<b id="timerL" style="margin:0"></b></label>
     </div>
-    <div class="gclear"><button class="btn" id="clearGarden" data-i18n="btn.clearGarden">庭の虫をすべて控えへ</button><button class="btn warn" id="freeAll" data-i18n="btn.freeAll">虫をすべて逃がす</button><button class="btn" id="tipBtn" hidden data-i18n="tip.btn">♡ 応援する</button></div>
+    <div class="gclear"><button class="btn" id="clearGarden" data-i18n="btn.clearGarden">庭の虫をすべて控えへ</button><button class="btn warn" id="freeAll" data-i18n="btn.freeAll">虫をすべて逃がす</button><button class="btn" id="tipBtn" hidden data-i18n="tip.btn">♡ 応援する</button><button class="btn" id="dataBtn" data-i18n="xfer.btn">データの引き継ぎ</button></div>
     <h2 id="benchH">控えの虫かご</h2>
     <div class="list" id="bench"></div>
   </section>
@@ -105,6 +105,14 @@
   <div class="acts" id="tipActs" style="flex-direction:column"></div>
   <div class="acts" id="thanksActs" hidden style="margin-top:8px"><button class="btn" id="tipLetter" data-i18n="letter.read">手紙を読む</button><button class="btn" id="ffBtn"></button></div>
   <div class="acts" style="margin-top:8px"><button class="btn" id="tipClose" data-i18n="bug.close">閉じる</button></div>
+</div></div>
+
+<div class="modal" id="dataM"><div class="sheet">
+  <h3 data-i18n="xfer.title">データの引き継ぎ</h3>
+  <p data-i18n="xfer.lead"></p>
+  <textarea id="dataBox" rows="5" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" style="width:100%;box-sizing:border-box;font-size:16px;background:var(--panel2);color:inherit;border:1px solid var(--line);border-radius:8px;padding:8px"></textarea>
+  <div class="acts" style="margin-top:8px"><button class="btn" id="dataExport" data-i18n="xfer.export">書き出す（コピー）</button><button class="btn" id="dataShare" hidden data-i18n="xfer.share">共有</button><button class="btn warn" id="dataImport" data-i18n="xfer.import">読み込む</button></div>
+  <div class="acts" style="margin-top:8px"><button class="btn" id="dataClose" data-i18n="bug.close">閉じる</button></div>
 </div></div>
 
 <div class="modal" id="letterM"><div class="sheet">

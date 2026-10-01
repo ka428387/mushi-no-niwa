@@ -74,6 +74,15 @@ if(SELFTEST)addEventListener('load',async()=>{
     S.settings.weather='light';const rain=(rainLvl=RAIN_T.light,gardenScene(400,500,200,false).fireflies.length);S.settings.weather='clear';rainLvl=0;
     await wait(300);S.supporter=false;renderSupporter();
     return (off===0&&rain===0)||`オフでも${off}匹・雨でも${rain}匹`});
+  await check('引き継ぎ：書き出したコードを読み込むと図鑑と庭が戻り、壊れたコードは受け付けない',async()=>{
+    S.seen={emma:1};S.bugs=[{id:961,sp:'emma',pitch:1,rate:1,name:'引き継ぎ「テスト」1号',garden:true,x:.4,y:.6,mute:false}];S.nextId=962;S.area='kusamura';
+    const code=xferEncode();if(!code.startsWith('izayoi1:')||/[\u3040-\u9fff"{]/.test(code))return 'コードが文字列として安全でない';
+    S.bugs=[];S.seen={};S.nextId=1;
+    const o=xferDecode('  '+code.slice(0,20)+'\n'+code.slice(20)+' '); /* 改行・空白が混ざっても読める */
+    if(!o)return '読み戻せない';xferApply(o);
+    if(S.bugs.length!==1||S.bugs[0].name!=='引き継ぎ「テスト」1号'||!S.seen.emma||S.nextId<962)return '戻らない: '+JSON.stringify(S.bugs);
+    for(const bad of['','abc','izayoi1:!!!','izayoi1:'+btoa('{"bugs":[{"sp":"nanika"}]}'),'izayoi1:'+btoa('{"bugs":5}')])if(xferDecode(bad))return '壊れたコードを受け付けた: '+bad;
+    S.bugs=[];S.seen={};return true});
   await check('英語表示：3つの画面と虫の詳細に日本語が残っておらず、辞書の抜けもない',async()=>{
     setLang('en');S.seen={emma:1,kantan:1};S.bugs=[];
     for(const[id,sp,g]of[[951,'emma',true],[952,'kantan',true],[953,'suzumushi',false]])S.bugs.push({id,sp,pitch:1,rate:1,name:nextName(sp),garden:g,x:.3+id%3*.2,y:.6,mute:false});
