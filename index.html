@@ -25,6 +25,13 @@
 </head>
 <body>
 
+<div id="appNotice" hidden data-ver="1">
+  <span data-i18n="notice.app">Izayoi が iPhone アプリになりました。このウェブ版は、近いうちに終了します。</span>
+  <a href="https://apps.apple.com/app/id6817434904" data-i18n="notice.link">App Store で見る</a>
+  <button type="button" id="appNoticeX" aria-label="close">×</button>
+</div>
+<script>if(!window.Capacitor){try{if(!localStorage.getItem('izayoi-notice-x'))document.getElementById('appNotice').hidden=false}catch(e){document.getElementById('appNotice').hidden=false}document.getElementById('appNoticeX').onclick=function(){document.getElementById('appNotice').hidden=true;try{localStorage.setItem('izayoi-notice-x','1')}catch(e){}}}</script>
+
 <div id="start">
   <h2><img src="assets/brand/izayoi-lockup.svg" alt="Izayoi — A Garden of Insect Songs — 虫の音の庭"></h2>
   <p data-i18n-html="start.lead">夜の草むらで秋の虫をさがして、<br>自分だけの庭に放して音を育てる。<br><small>イヤホンだと、虫のいる方向が聞き分けられます。</small></p>
@@ -65,7 +72,7 @@
       <label><span data-i18n="ctl.timer">おやすみタイマー</span><select id="timer"><option value="0">なし</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option><option value="90">90分</option></select></label>
       <label>&nbsp;<b id="timerL" style="margin:0"></b></label>
     </div>
-    <div class="gclear"><button class="btn" id="clearGarden" data-i18n="btn.clearGarden">庭の虫をすべて控えへ</button><button class="btn warn" id="freeAll" data-i18n="btn.freeAll">虫をすべて逃がす</button><button class="btn" id="tipBtn" hidden data-i18n="tip.btn">♡ 応援する</button><button class="btn" id="dataBtn" data-i18n="xfer.btn">データの引き継ぎ</button></div>
+    <div class="gclear"><button class="btn" id="clearGarden" data-i18n="btn.clearGarden">庭の虫をすべて控えへ</button><button class="btn warn" id="freeAll" data-i18n="btn.freeAll">虫をすべて逃がす</button><button class="btn" id="tipBtn" hidden data-i18n="tip.btn">♡ 応援する</button></div>
     <h2 id="benchH">控えの虫かご</h2>
     <div class="list" id="bench"></div>
   </section>
@@ -74,6 +81,7 @@
     <p class="hint" id="zukanStat"></p>
     <div class="zukan" id="zgrid"></div>
     <div class="gclear" id="letterRow" hidden style="margin-top:14px"><button class="btn" id="letterBtn" data-i18n="letter.btn">✉ 虫たちからの手紙</button></div>
+    <div class="gclear" style="margin-top:14px"><button class="btn" id="dataBtn" data-i18n="xfer.btn">データの引き継ぎ</button></div> <!-- 機種変更のときだけ使うので、図鑑の下に -->
   </section>
 </main>
 

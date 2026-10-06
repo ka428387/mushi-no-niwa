@@ -74,6 +74,14 @@ if(SELFTEST)addEventListener('load',async()=>{
     S.settings.weather='light';const rain=(rainLvl=RAIN_T.light,gardenScene(400,500,200,false).fireflies.length);S.settings.weather='clear';rainLvl=0;
     await wait(300);S.supporter=false;renderSupporter();
     return (off===0&&rain===0)||`オフでも${off}匹・雨でも${rain}匹`});
+  await check('動画：応援したあとの共有動画の1コマにも、ほたるが描かれる（応援前は描かれない）',()=>{
+    const cv=document.createElement('canvas');cv.width=405;cv.height=720;const c=cv.getContext('2d');
+    const orig=paintFirefliesFallback;let n=0;paintFirefliesFallback=(cc,l)=>{n+=l.length;orig(cc,l)};
+    try{S.supporter=false;paintShare(c,405,720,performance.now());const before=n;
+      becomeSupporter();paintShare(c,405,720,performance.now());const after=n-before;
+      S.supporter=false;renderSupporter();
+      return (before===0&&after===FF_N)||`応援前${before}匹・応援後${after}匹（${FF_N}匹のはず）`}
+    finally{paintFirefliesFallback=orig}});
   await check('引き継ぎ：書き出したコードを読み込むと図鑑と庭が戻り、壊れたコードは受け付けない',async()=>{
     S.seen={emma:1};S.bugs=[{id:961,sp:'emma',pitch:1,rate:1,name:'引き継ぎ「テスト」1号',garden:true,x:.4,y:.6,mute:false}];S.nextId=962;S.area='kusamura';
     const code=xferEncode();if(!code.startsWith('izayoi1:')||/[\u3040-\u9fff"{]/.test(code))return 'コードが文字列として安全でない';

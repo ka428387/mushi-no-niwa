@@ -349,10 +349,15 @@ const REC_TYPE=(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream&
 let REC=null,recDest=null,recLevel=null;
 // 動画用に、庭を w×h の大きさで描くときの中身（虫の位置と地面の高さをその大きさに合わせる）。art.js の paintShareFrame から呼ばれる
 const shareScene=(w,h)=>{const v=gardenScene(w,h,clamp(artGroundY(GARDEN_ART,GARDEN_GROUND,w,h,artPosX()),16,h*.6),false);v.share=true;return v};
+// 共有動画の1コマ（art.js の paintShareFrame）。応援のお礼のほたるも、画面の庭と同じように、庭を描いた直後に描き足す（paintShareFrame は庭を paintGarden で描くので、その間だけ包む）
+function paintShare(c,W,H,now){
+  const pg=paintGarden;
+  paintGarden=(cc,w,h,n,v)=>{pg(cc,w,h,n,v);if(v.share&&typeof paintFireflies!=='function'&&v.fireflies.length)paintFirefliesFallback(cc,v.fireflies)};
+  try{paintShareFrame(c,W,H,now,{scene:shareScene,moon:moonInfo()})}finally{paintGarden=pg}}
 function drawRecFrame(now){const r=REC;if(now-r.last<30)return;r.last=now; // 30コマ/秒で十分
   const c=r.c;c.setTransform(REC_W/REC_LW,0,0,REC_H/REC_LH,0,0);
   // 動画1コマの構図は art.js が決める：庭をどの大きさ・位置に描くか（scene(w,h) で中身をもらって paintGarden に渡す）、文字をどこに置くか
-  if(typeof paintShareFrame==='function'){c.clearRect(0,0,REC_LW,REC_LH);paintShareFrame(c,REC_LW,REC_LH,now,{scene:shareScene,moon:moonInfo()});return}
+  if(typeof paintShareFrame==='function'){c.clearRect(0,0,REC_LW,REC_LH);paintShare(c,REC_LW,REC_LH,now);return}
   const v=shareScene(REC_LW,REC_LH);
   paintGarden(c,REC_LW,REC_LH,now,v);
   if(typeof paintShareOverlay==='function')paintShareOverlay(c,REC_LW,REC_LH,now,{moon:v.moon,progress:r.started?clamp((ac.currentTime-r.t0)/REC_MAX,0,1):0})}

@@ -101,3 +101,8 @@ h2{font-size:14px;color:var(--sub);font-weight:500;margin:18px 2px 8px}
 @media (max-width:360px){
   h1 small{display:none}
 }
+
+#appNotice{position:fixed;left:0;right:0;top:0;z-index:40;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 12px;padding:max(8px,env(safe-area-inset-top)) 40px 8px 14px;background:#0b3032;border-bottom:1px solid rgba(220,166,64,.6);color:var(--text);font-size:12.5px;line-height:1.5;text-align:center}
+#appNotice[hidden]{display:none}
+#appNotice a{color:var(--accent);white-space:nowrap}
+#appNotice button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--text);font-size:20px;padding:6px 10px;cursor:pointer}
