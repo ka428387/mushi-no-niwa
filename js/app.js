@@ -58,8 +58,14 @@ const SELFTEST=/[?&]selftest\b/.test(location.search);
 const KEY=SELFTEST?'mushinoniwa.selftest':'mushinoniwa.v1';
 if(SELFTEST)try{localStorage.removeItem(KEY)}catch(e){}
 const S=Object.assign({bugs:[],nextId:1,seen:{},settings:{temp:22,depth:.7,wind:.35,vol:.8,fireflies:true},area:'kusamura',supporter:false},(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}})());
-S.settings=Object.assign({temp:22,depth:.7,wind:.35,vol:.8,soft:.6,weather:'clear'},S.settings);
-if(S.settings.weather==='heavy')S.settings.weather='light';
+// 設定の値を整える（保存データ・引き継ぎコード共通）。数値は範囲に収め、おかしい値は捨てる。full のときは、捨てた分を初期値で埋める
+const SET_DEF={temp:22,depth:.7,wind:.35,vol:.8,soft:.6},SET_RNG={temp:[14,30],depth:[0,1.4],wind:[0,1],soft:[0,1],vol:[0,1]},WEATHERS=['clear','light'];
+function cleanSettings(src,full){const o={};if(!src||typeof src!=='object')src={};
+  for(const k in SET_RNG){const v=src[k];if(typeof v==='number'&&isFinite(v))o[k]=clamp(v,SET_RNG[k][0],SET_RNG[k][1]);else if(full)o[k]=SET_DEF[k]}
+  if(WEATHERS.includes(src.weather))o.weather=src.weather;else if(src.weather==='heavy')o.weather='light';else if(full)o.weather='clear';
+  if(typeof src.fireflies==='boolean')o.fireflies=src.fireflies;
+  return o}
+S.settings=Object.assign({},S.settings&&typeof S.settings==='object'?S.settings:{},cleanSettings(S.settings,true));
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const URL_LANG=new URLSearchParams(location.search).get('lang'); // ?lang=en のリンクで開いたら英語（保存はしない）
 LANG=LANGS.includes(URL_LANG)?URL_LANG:LANGS.includes(S.settings.lang)?S.settings.lang:detectLang(); // 言語：リンクの指定 → 前に選んだもの → 端末の言語
@@ -335,7 +341,7 @@ function renderBench(){const el=document.getElementById('bench');const list=S.bu
   if(!list.length){el.innerHTML=`<p class="hint">${t('bench.empty')}</p>`;return}
   const full=inGarden().length>=GARDEN_MAX;
   for(const b of list){const r=document.createElement('div');r.className='row';const cv=document.createElement('canvas');r.appendChild(cv);
-    const nm=document.createElement('div');nm.className='nm';nm.innerHTML=`${b.name}<small>${SPECIES[b.sp].name}・${traits(b)}</small>`;r.appendChild(nm);
+    const nm=document.createElement('div');nm.className='nm';nm.appendChild(document.createTextNode(b.name));const sm=document.createElement('small');sm.textContent=`${SPECIES[b.sp].name}・${traits(b)}`;nm.appendChild(sm);r.appendChild(nm);
     const go=document.createElement('button');go.className='btn pri';go.textContent=t('bench.toGarden');go.disabled=full;go.onclick=()=>{b.garden=true;Object.assign(b,freeSpot());save();syncGarden();renderBench()};r.appendChild(go);
     const fr=document.createElement('button');fr.className='btn warn';fr.textContent=t('bench.release');fr.onclick=()=>armButton(fr,t('bench.again'),()=>release(b));r.appendChild(fr);
     el.appendChild(r);requestAnimationFrame(()=>thumb(cv,b.sp,0))}}
@@ -369,11 +375,13 @@ const recQuiet=(r,n,q)=>{const a=r.samples.slice().sort((x,y)=>x-y);return n<=a[
 function startRec(min=REC_MIN,max=REC_MAX){return new Promise((resolve,reject)=>{
   const cv=document.createElement('canvas');cv.width=REC_W;cv.height=REC_H;
   cv.style.cssText='position:fixed;left:-10000px;top:0;width:2px;height:2px;pointer-events:none';document.body.appendChild(cv); // ページに置かないと録れないブラウザがある
+  let r=null,vt=[];
+  try{ // 準備の途中で例外が出ても、REC と置いた canvas を片づけて失敗にする（残すと、録画ボタンが二度と動かなくなる）
   if(!recDest){recDest=ac.createMediaStreamDestination();recLevel=ac.createGain();outNode.connect(recLevel);recLevel.connect(recDest)}
   const lv=clamp(.8/Math.max(S.settings.vol,.05),1,4); // 音量つまみを下げていても、動画はふつうの大きさで
   recLevel.gain.cancelScheduledValues(0);recLevel.gain.value=0;
-  const r=REC={c:cv.getContext('2d'),last:0,t0:0,started:false,ending:false,chunks:[],cancelled:false,lastOn:new Map(),samples:[],min,max};drawRecFrame(performance.now());
-  const vt=cv.captureStream(30).getVideoTracks(),stream=new MediaStream([...vt,...recDest.stream.getAudioTracks()]);
+  r=REC={c:cv.getContext('2d'),last:0,t0:0,started:false,ending:false,chunks:[],cancelled:false,lastOn:new Map(),samples:[],min,max};drawRecFrame(performance.now());
+  vt=cv.captureStream(30).getVideoTracks();const stream=new MediaStream([...vt,...recDest.stream.getAudioTracks()]);
   r.done=()=>{if(r.fin)return;r.fin=true;if(REC===r)REC=null;clearInterval(r.iv);cv.remove();vt.forEach(k=>k.stop());const blob=new Blob(r.chunks,{type:REC_TYPE.split(';')[0]});
     if(r.cancelled)reject(new Error('cancelled'));else if(!blob.size)reject(new Error('empty'));else resolve(blob)};
   // 画質の指定（videoBitsPerSecond など）はしない。iPhone（WebKit）で中身が空になりやすかった
@@ -384,12 +392,13 @@ function startRec(min=REC_MIN,max=REC_MAX){return new Promise((resolve,reject)=>
     if(!r.started){ // 声の切れ目を待って録り始める（待つのは長くても2.5秒）
       if(n===0||(now-w0>1&&recQuiet(r,n,.15))||now-w0>2.5){r.started=true;begin(now)}return}
     const len=now-r.t0+REC_FADE; // いまフェードを始めたときの動画の長さ
-    if(len>=max||len>=min&&(n===0||recQuiet(r,n,len<min+1?.15:.35)))stopRec(false)},40)})} // 10秒に近づくほど少し妥協する
+    if(len>=max||len>=min&&(n===0||recQuiet(r,n,len<min+1?.15:.35)))stopRec(false)},40)} // 10秒に近づくほど少し妥協する
+  catch(e){if(r){clearInterval(r.iv);if(REC===r)REC=null}vt.forEach(k=>{try{k.stop()}catch(_){}});cv.remove();reject(e)}})}
 // ボタンに出す進み具合 0〜1（CSS の --rec）。止める時刻は声の切れ目しだいなので、8秒で85%まで進め、残りは10秒に向けてゆっくり、止めた瞬間に100%
 function recProgress(){const r=REC;if(!r||!r.started)return 0;if(r.ending)return 1;const e=ac.currentTime-r.t0+REC_FADE;
   return e<r.min?.85*e/r.min:Math.min(.99,.85+.15*(e-r.min)/(r.max-r.min))}
 function stopRec(cancel){const r=REC;if(!r||r.ending)return;r.ending=true;r.cancelled=!!cancel;clearInterval(r.iv);
-  const fin=()=>{if(r.mr.state!=='inactive'){r.mr.stop();setTimeout(r.done,3000)}else r.done()}; // 止まった知らせが来なくても、3秒で必ず終える
+  const fin=()=>{if(r.mr&&r.mr.state!=='inactive'){r.mr.stop();setTimeout(r.done,3000)}else r.done()}; // 止まった知らせが来なくても、3秒で必ず終える
   if(cancel||!r.started){fin();return}
   const now=ac.currentTime;recLevel.gain.cancelScheduledValues(now);recLevel.gain.setValueAtTime(recLevel.gain.value,now);recLevel.gain.linearRampToValueAtTime(0,now+REC_FADE);setTimeout(fin,REC_FADE*1000+60)}
 const blobB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(b)});
@@ -491,16 +500,29 @@ const TIP_IDS=['com.ka428387.izayoi.tip1','com.ka428387.izayoi.tip2','com.ka4283
 // メモアプリが " を “ に変えても壊れないよう、中身は base64 にする
 const XFER_PRE='izayoi1:';
 const xferEncode=()=>XFER_PRE+btoa(unescape(encodeURIComponent(JSON.stringify(S))));
-function xferDecode(txt){ // 読めて、中身が正しければデータ、だめなら null
+// 読み込むデータは中身を1つずつ確かめて、安全な形に作り直す（他人から渡されたコードや壊れたコードでも、アプリが止まったり、HTMLが入ったりしないように）
+const XFER_MAX_BUGS=500,own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+function xferClean(o){
+  if(!o||typeof o!=='object'||!Array.isArray(o.bugs)||o.bugs.length>XFER_MAX_BUGS)return null;
+  const num=(v,lo,hi)=>typeof v==='number'&&isFinite(v)?clamp(v,lo,hi):null;
+  const bugs=[],ids=new Set();let garden=0;
+  for(const b of o.bugs){
+    if(!b||typeof b!=='object'||typeof b.sp!=='string'||!own(SPECIES,b.sp))return null;
+    const id=Number.isInteger(b.id)&&b.id>=0?b.id:null,pitch=num(b.pitch,.5,2),rate=num(b.rate,.5,2);
+    if(id===null||pitch===null||rate===null||ids.has(id))return null;
+    ids.add(id);
+    const inG=!!b.garden&&garden<GARDEN_MAX;if(inG)garden++;
+    bugs.push({id,sp:b.sp,pitch,rate,name:typeof b.name==='string'&&b.name.trim()?b.name.slice(0,40):SPECIES[b.sp].name,garden:inG,x:num(b.x,0,1)??.5,y:num(b.y,0,1)??.5,mute:!!b.mute})}
+  const seen={};if(o.seen&&typeof o.seen==='object')for(const k of SP_KEYS){const v=o.seen[k];if(Number.isInteger(v)&&v>0)seen[k]=Math.min(v,99999)}
+  return{bugs,seen,settings:cleanSettings(o.settings,false),area:typeof o.area==='string'&&own(AREAS,o.area)?o.area:null,supporter:!!o.supporter,
+    nextId:Math.max(1,Number.isInteger(o.nextId)?Math.min(o.nextId,1e9):1,...bugs.map(b=>b.id+1))}}
+function xferDecode(txt){ // 読めて、中身が正しければ整えたデータ、だめなら null
   try{const raw=String(txt).replace(/\s+/g,'');if(!raw.startsWith(XFER_PRE))return null;
-    const o=JSON.parse(decodeURIComponent(escape(atob(raw.slice(XFER_PRE.length)))));
-    if(!o||typeof o!=='object'||!Array.isArray(o.bugs)||!o.bugs.every(b=>b&&typeof b==='object'&&SPECIES[b.sp]&&isFinite(b.pitch)&&isFinite(b.rate)&&isFinite(b.id)))return null;
-    return o}catch(e){return null}}
-function xferApply(o){ // 読み込んだ内容でいまのデータを置き換える（応援のお礼だけは、どちらかにあれば残す）
-  S.bugs=o.bugs;S.nextId=Math.max(+o.nextId||1,...o.bugs.map(b=>b.id+1));
-  S.seen=o.seen&&typeof o.seen==='object'?o.seen:{};
-  if(o.settings&&typeof o.settings==='object')Object.assign(S.settings,o.settings);
-  if(AREAS[o.area])S.area=o.area;
+    return xferClean(JSON.parse(decodeURIComponent(escape(atob(raw.slice(XFER_PRE.length))))))}catch(e){return null}}
+function xferApply(o){ // 読み込んだ内容でいまのデータを置き換える（応援のお礼だけは、どちらかにあれば残す）。o は xferDecode が整えたもの
+  S.bugs=o.bugs;S.nextId=o.nextId;S.seen=o.seen;
+  Object.assign(S.settings,o.settings);
+  if(o.area)S.area=o.area;
   S.supporter=!!(S.supporter||o.supporter);save()}
 {const M=document.getElementById('dataM'),box=document.getElementById('dataBox'),imp=document.getElementById('dataImport');
   const cap=window.Capacitor,canShare=!!(cap&&cap.nativePromise&&(cap.PluginHeaders||[]).some(h=>h.name==='Share'));
@@ -530,7 +552,7 @@ function playPreview(k,btn){if(!ac)return;if(preview)endPreview(preview);
   do{v.nextT=at;at+=Math.max(.2,v.sp.phrase(v,at,tempo()))}while(at<until&&v.lastEnd<until-1.5);
   setTimeout(()=>endPreview(v),(v.lastEnd-ac.currentTime)*1000+500)}
 function renderZukan(){const el=document.getElementById('zgrid');el.innerHTML='';let found=0;
-  for(const k of SP_KEYS){const sp=SPECIES[k],n=S.seen[k]||0;if(n)found++;
+  for(const k of SP_KEYS){const sp=SPECIES[k],n=Math.max(0,Math.floor(+S.seen[k])||0);if(n)found++;
     const cd=document.createElement('div');cd.className='card'+(n?'':' unk');const cv=document.createElement('canvas');cd.appendChild(cv);
     cd.insertAdjacentHTML('beforeend',n?`<div class="t">${sp.name}${sp.common?`<small> — ${sp.common}</small>`:''}</div><div class="v">${sp.voice}</div><div class="d">${sp.desc}</div>`:`<div class="t">？？？</div><div class="v">？？？</div><div class="d">${t('zukan.unknown',{areas:Object.keys(AREAS).filter(a=>AREAS[a].w[k]).map(a=>AREAS[a].name).join(t('zukan.areaSep'))})}</div>`);
     const f=document.createElement('div');f.className='f';f.innerHTML=`<span>${t('zukan.caught',{n})}</span>`;

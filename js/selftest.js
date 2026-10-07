@@ -91,6 +91,34 @@ if(SELFTEST)addEventListener('load',async()=>{
     if(S.bugs.length!==1||S.bugs[0].name!=='引き継ぎ「テスト」1号'||!S.seen.emma||S.nextId<962)return '戻らない: '+JSON.stringify(S.bugs);
     for(const bad of['','abc','izayoi1:!!!','izayoi1:'+btoa('{"bugs":[{"sp":"nanika"}]}'),'izayoi1:'+btoa('{"bugs":5}')])if(xferDecode(bad))return '壊れたコードを受け付けた: '+bad;
     S.bugs=[];S.seen={};return true});
+  await check('引き継ぎ：悪意のある・壊れたコードは弾くか安全な形に直し、読み込んでもアプリが止まらない',async()=>{
+    const enc=o=>'izayoi1:'+btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+    const bug=(x={})=>({id:1,sp:'emma',pitch:1,rate:1,name:'a',garden:true,x:.5,y:.5,mute:false,...x});
+    // 弾くもの：継承キー・id 重複・数値でない値・多すぎる虫
+    for(const [why,o] of [['継承キー',{bugs:[bug({sp:'constructor'})]}],['__proto__',{bugs:[bug({sp:'__proto__'})]}],['id重複',{bugs:[bug(),bug()]}],
+      ['pitchが文字',{bugs:[bug({pitch:'1'})]}],['rateがnull',{bugs:[bug({rate:null})]}],['idが小数',{bugs:[bug({id:1.5})]}],['多すぎる',{bugs:Array.from({length:501},(_,i)=>bug({id:i}))}]])
+      if(xferDecode(enc(o)))return '受け付けてはいけないコード: '+why;
+    // 直して受け付けるもの：HTML入りの名前・数値でない設定・範囲外・継承キーの場所・庭の上限超え・seen の HTML
+    const evil=xferDecode(enc({bugs:[bug({name:'<img src=x onerror=alert(1)>'.repeat(5),x:'a',y:99,garden:true})],
+      seen:{emma:'<img src=x onerror=1>',constructor:5,suzumushi:3},settings:{weather:'foo',temp:'abc',vol:99,wind:-5,depth:NaN,lang:'xx'},area:'constructor',nextId:'zzz'}));
+    if(!evil)return '直せるコードを受け付けなかった';
+    const b=evil.bugs[0];
+    if(b.name.length>40||!isFinite(b.x)||b.y!==1)return '名前の長さや位置が整っていない: '+JSON.stringify(b).slice(0,120);
+    if(evil.seen.emma!==undefined||own(evil.seen,'constructor')||evil.seen.suzumushi!==3)return 'seen が整っていない: '+JSON.stringify(evil.seen);
+    const st=evil.settings;if(st.weather!==undefined||st.temp!==undefined||st.vol!==1||st.wind!==0||st.depth!==undefined||st.lang!==undefined)return '設定が整っていない: '+JSON.stringify(st);
+    if(evil.area!==null||evil.nextId<2)return 'area や nextId が整っていない';
+    const many=xferDecode(enc({bugs:Array.from({length:15},(_,i)=>bug({id:i}))}));if(!many||many.bugs.filter(x=>x.garden).length!==GARDEN_MAX)return '庭の上限を超えたまま';
+    // 読み込んで画面を開いても、HTML が入らず、音の部品も NaN にならない
+    const keepLang=S.settings.lang;xferApply(evil);
+    if(S.settings.weather!=='clear'&&S.settings.weather!=='light')return '天気が壊れた';
+    S.bugs=[bug({id:970,garden:false,name:'<img src=x onerror=window.__xss=1>'})];S.seen={emma:'<img src=x onerror=window.__xss=1>'};
+    renderBench();renderZukan();await wait(150);
+    if(window.__xss)return 'HTML が実行された';
+    if(document.querySelector('#bench img,#zgrid img'))return '名前や数が HTML として入った';
+    // 保存データ側の整え：壊れた設定が保存されていても、起動時に直る
+    const fixed=cleanSettings({weather:'zzz',temp:'x',vol:5,fireflies:'yes'},true);
+    if(fixed.weather!=='clear'||fixed.temp!==22||fixed.vol!==1||'fireflies' in fixed)return '起動時の整えが効かない: '+JSON.stringify(fixed);
+    S.settings.lang=keepLang;S.bugs=[];S.seen={};return true});
   await check('英語表示：3つの画面と虫の詳細に日本語が残っておらず、辞書の抜けもない',async()=>{
     setLang('en');S.seen={emma:1,kantan:1};S.bugs=[];
     for(const[id,sp,g]of[[951,'emma',true],[952,'kantan',true],[953,'suzumushi',false]])S.bugs.push({id,sp,pitch:1,rate:1,name:nextName(sp),garden:g,x:.3+id%3*.2,y:.6,mute:false});

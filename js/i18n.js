@@ -58,7 +58,7 @@ ja:{
   'letter.body':'今夜も庭で鳴かせてくれて、ありがとう。<br>あなたが眠っているあいだも、わたしたちはここで鳴いています。<br><br>お礼に、ほたるを何匹か呼んでおきました。秋のほたるは少し季節はずれですが、あなたの庭がすっかり気に入ったようです。<br><br>—— 庭の虫たちより',
   'tip.count':'これまでに {n} 回応援してもらいました。ありがとうございます。',
   'tip.1':'ちょっと応援　{price}','tip.2':'応援　{price}','tip.3':'たっぷり応援　{price}',
-  'tip.loading':'読み込んでいます…','tip.unavailable':'いまは App Store につながりません。時間をおいてもう一度どうぞ。',
+  'tip.loading':'読み込んでいます…','tip.unavailable':'いまはストアにつながりません。時間をおいてもう一度どうぞ。',
   'tip.thanks':'応援ありがとうございます！','tip.pending':'承認を待っています。承認されたら応援が届きます','tip.failed':'応援できませんでした',
 },
 en:{
@@ -115,7 +115,7 @@ en:{
   'letter.body':'Thank you for letting us sing in your garden again tonight.<br>While you sleep, we’ll keep singing right here.<br><br>To say thanks, we invited a few fireflies. Fireflies in autumn are a little out of season, but they seem to love your garden.<br><br>— The insects in your garden',
   'tip.count':'Tips so far: {n}. Thank you!',
   'tip.1':'Small tip — {price}','tip.2':'Medium tip — {price}','tip.3':'Large tip — {price}',
-  'tip.loading':'Loading…','tip.unavailable':'Can’t reach the App Store right now. Please try again later.',
+  'tip.loading':'Loading…','tip.unavailable':'Can’t reach the store right now. Please try again later.',
   'tip.thanks':'Thank you for your support!','tip.pending':'Waiting for approval. Your tip will go through once it’s approved','tip.failed':'Couldn’t complete the tip',
 },
 };
